@@ -1,0 +1,1077 @@
+from flask import Flask, render_template, request, redirect, url_for, flash, send_file, jsonify, send_from_directory
+from flask_login import LoginManager, login_required, login_user, logout_user, UserMixin, current_user
+import sqlite3
+import os
+import pandas as pd
+import datetime
+import json
+
+app = Flask(__name__)
+app.secret_key = 'moh_opd_system_2025_secret_key'
+
+# Add strftime filter to Jinja2
+@app.template_filter('strftime')
+def _jinja2_filter_datetime(date, fmt=None):
+    if fmt is None:
+        fmt = '%Y-%m-%d'
+    if isinstance(date, str):
+        try:
+            date = datetime.datetime.strptime(date, '%Y-%m-%d')
+        except ValueError:
+            try:
+                date = datetime.datetime.strptime(date, '%Y-%m-%d %H:%M:%S')
+            except ValueError:
+                return date
+    return date.strftime(fmt)
+
+# User System with Roles
+login_manager = LoginManager(app)
+login_manager.login_view = 'login'
+
+class User(UserMixin):
+    def __init__(self, id, username, password, role='clerk', active=True):
+        self.id = id
+        self.username = username
+        self.password = password
+        self.role = role
+        self.active = active
+
+    def is_supervisor(self):
+        return self.role in ['supervisor', 'admin']
+
+    def is_admin(self):
+        return self.role == 'admin'
+
+    def is_active(self):
+        return self.active
+
+# --- Audit logging helper ---
+def log_action(action: str, entity: str, entity_id=None, details: dict | None = None):
+    try:
+        conn = get_db()
+        c = conn.cursor()
+        c.execute(
+            "INSERT INTO audit_log (timestamp, user, action, entity, entity_id, details) VALUES (?, ?, ?, ?, ?, ?)",
+            (
+                datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                getattr(current_user, 'username', 'system'),
+                action,
+                entity,
+                str(entity_id) if entity_id is not None else None,
+                json.dumps(details) if details is not None else None,
+            ),
+        )
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        print(f"Audit log error: {e}")
+
+# Sample Users — add pharmacist
+USERS = {
+    'clerk': User(1, 'clerk', 'clerk123', 'clerk', True),
+    'supervisor': User(2, 'supervisor', 'super123', 'supervisor', True),
+    'admin': User(3, 'admin', 'admin123', 'admin', True),
+    'pharmacist': User(4, 'pharmacist', 'pharma123', 'pharmacist', True)
+}
+
+@login_manager.user_loader
+def load_user(user_id):
+    for u in USERS.values():
+        if str(u.id) == str(user_id):
+            return u
+    return None
+
+def get_db():
+    return sqlite3.connect(os.path.join(os.path.dirname(__file__), 'opd.db'))
+
+def init_db():
+    conn = get_db()
+    c = conn.cursor()
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS opd_visits (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            visit_date TEXT NOT NULL,
+            visit_time TEXT NOT NULL,
+            patient_id TEXT,
+            patient_name TEXT NOT NULL,
+            age INTEGER NOT NULL,
+            sex TEXT NOT NULL,
+            village TEXT,
+            department TEXT NOT NULL,
+            lab_tested TEXT,
+            lab_test_type TEXT,
+            lab_result TEXT,
+            malaria_classification TEXT,
+            diagnosis TEXT NOT NULL,
+            diagnosis_code TEXT NOT NULL DEFAULT '',
+            treatment_given TEXT NOT NULL,
+            outcome TEXT NOT NULL,
+            referred_to TEXT,
+            next_appointment TEXT,
+            entered_by TEXT NOT NULL,
+            timestamp TEXT NOT NULL
+        )
+    ''')
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS audit_log (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            timestamp TEXT NOT NULL,
+            user TEXT NOT NULL,
+            action TEXT NOT NULL,
+            entity TEXT NOT NULL,
+            entity_id TEXT,
+            details TEXT
+        )
+    ''')
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS drugs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL UNIQUE,
+            stock INTEGER NOT NULL DEFAULT 0
+        )
+    ''')
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS prescriptions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            opd_visit_id INTEGER NOT NULL,
+            drug_id INTEGER NOT NULL,
+            quantity_prescribed INTEGER NOT NULL DEFAULT 1,
+            quantity_dispensed INTEGER DEFAULT 0,
+            dispensed_by TEXT,
+            dispensed_at TEXT,
+            FOREIGN KEY(opd_visit_id) REFERENCES opd_visits(id),
+            FOREIGN KEY(drug_id) REFERENCES drugs(id)
+        )
+    ''')
+    c.execute("SELECT COUNT(*) FROM drugs")
+    if c.fetchone()[0] == 0:
+        for drug in MALAWI_DRUGS:
+            c.execute("INSERT OR IGNORE INTO drugs (name, stock) VALUES (?, 0)", (drug,))
+    try:
+        c.execute("PRAGMA table_info(opd_visits)")
+        cols = [row[1] for row in c.fetchall()]
+        if 'diagnosis_code' not in cols:
+            c.execute("ALTER TABLE opd_visits ADD COLUMN diagnosis_code TEXT NOT NULL DEFAULT ''")
+    except Exception as e:
+        print(f"Migration error: {e}")
+    conn.commit()
+    conn.close()
+
+# ✅ FULL HMIS DISEASE CODES
+HMIS_DISEASE_CODES = {
+    "Polio": "", "Diphtheria": "", "Measles": "", "Neo-natal tetanus": "", "Tetanus": "",
+    "Tuberculosis (all forms)": "", "Whooping cough": "", "Otitis media": "8a", "Mastoiditis": "8b",
+    "Epiglottitis": "8c", "Very Severe Pneumonia": "9a", "Severe Pneumonia": "9b", "Pneumonia": "9c",
+    "Asthma all forms": "10", "Influenza (all forms)": "11", "Cholera": "12", "Dysentery": "13",
+    "Diarrhoea diseases (non-bloody) under 5": "14a", "Diarrhoea diseases (non-bloody) over 5": "14b",
+    "Anemia": "15a", "Severe anemia in pregnancy": "16", "Acute Malnutrition (Under 12)": "17a",
+    "Acute Malnutrition in pregnancy and lactating women": "17b", "Acute malnutrition (adolescents & adults)": "17c",
+    "Hypertension": "18", "Rheumatic heart disease": "19a", "Congenital Heart diseases": "19b",
+    "Other infections of the heart": "19c", "Organic mental disorder": "20", "Alcohol use mental disorder": "21a",
+    "Drug use mental disorder": "21b", "Schizophrenia": "21c", "Acute and transient psychotic disorder": "21d",
+    "Depression": "21e", "Mood affective disorder": "21f", "Puerperal mental disorder": "21g",
+    "Epilepsy": "22", "Conjunctivitis": "23a", "Glaucoma": "23b", "Trachoma": "23c", "Cataract": "24a",
+    "Childhood blindness": "24b", "Refractive errors": "24c", "Diabetic retinopathy": "24d", "Uveitis": "24e",
+    "Dental decay (Caries)": "25", "Gum diseases (Gingivitis)": "26a", "Oral Cancers": "26b", "Teeth Malformations": "26c",
+    "Leprosy (new pauci bacilli & new Multi-bacilli cases)": "27a", "Leprosy- Relapses": "27b",
+    "Leprosy-Defaulters": "27c", "Scabies": "28", "Chicken pox": "29a", "Bacterial skin infections": "29b",
+    "Fungal skin infections": "29c", "Viral skin infections": "29d", "Eczematous skin conditions": "29e",
+    "Papulo squamous skin infections": "29f", "Parasitic skin infection": "29g", "AIDS": "30",
+    "Sexually Transmitted Infections (STI)": "31", "Syphilis in pregnancy": "31p",
+    "Malaria in children under 5 confirmed through parasitological test": "32ACo",
+    "Malaria presumed in children under 5 through clinical judgement only": "32APr",
+    "Malaria in persons 5 and above confirmed through parasitological test": "32BCo",
+    "Malaria presumed in persons 5 and over through clinical judgement only": "32BPr",
+    "Bilharzia (Schistosomiasis)": "33", "Chicken pox": "34", "H1N1": "35a", "Anthrax": "35b", "SARS": "35c",
+    "Ebola": "35d", "Rift Valley Fever": "35e", "Marburg": "35f", "Intestinal worms": "36",
+    "Jaundice and infective hepatitis": "37", "Meningitis": "38", "Plague": "39", "Typhoid Fever": "40",
+    "Yellow fever": "41", "Rabies": "42", "All other communicable diseases": "43", "Opportunistic infections": "51",
+    "Gynecological disorders (Pelvic Inflammation disorders)": "44a", "Abortion complications": "44b",
+    "Ectopic pregnancy": "44c", "Eclampsia": "44d", "Postpartum sepsis": "53", "Postpartum hemorrhage": "54",
+    "New born complications (Sepsis; Fever)": "55", "Musculoskeletal pains": "46", "Traumatic conditions": "47a",
+    "Road Traffic Injuries": "47b", "Trauma- head injuries": "47c", "Trauma-spinal injuries": "47d",
+    "Trauma-Chest and abdomen (torso)": "47e", "Trauma-Extremities": "47f", "Gender based physical injuries": "47g",
+    "Sexual assault injuries (Rape)": "47h", "Occupational Related Injuries": "47i", "Other genito-urinary tract infection": "45",
+    "Ear infection": "48", "Diabetes": "48a", "Cervical Cancer": "48b", "Breast Cancer": "48c", "Prostate Cancer": "48d",
+    "Other Cancers": "48e", "Asthma": "48f", "Stroke": "48g", "Hernia": "50a", "Bowel Obstruction": "50b",
+    "Gastro Intestinal Bleeding": "50c", "Tumors": "50d", "Osteomyelitis": "50e", "Abscess": "50f",
+    "Congenital malformations": "50g", "Perforated stomach": "50h", "Peptic ulcers disease": "50i", "Appendicitis": "50j",
+    "Bronchitis (all forms)": "56", "Elephantiasis (Lymphatic Filariasis)": "56", "Onchocerciasis": "57",
+    "Trypanosomiasis (TRIPS)": "58", "Salmonella": "59a", "Shigella": "59b"
+}
+
+# ✅ MALAWI DRUG LIST — Simplified to base strengths only
+MALAWI_DRUGS = [
+    # Malaria drugs — base strengths only (map to LA codes)
+    "Artemether-Lumefantrine 20mg/120mg",   # → LA 1X6
+    "Artemether-Lumefantrine 40mg/240mg",   # → LA 2X6
+    "Artemether-Lumefantrine 60mg/360mg",   # → LA 3X6
+    "Artemether-Lumefantrine 80mg/480mg",   # → LA 4X6
+    
+    # ASAQ variants (keep as-is)
+    "ASAQ 25mg/67.5mg (3 tablets)",
+    "ASAQ 50mg/135mg (3 tablets)",
+    "ASAQ 100mg/270mg (3 tablets)",
+    "ASAQ 100mg/270mg (6 tablets)",
+    
+    # Non-malaria drugs (unchanged)
+    "Amoxicillin 250mg",
+    "Amoxicillin 500mg",
+    "Cotrimoxazole 800mg/160mg",
+    "Cotrimoxazole 400mg/80mg",
+    "Metronidazole 400mg",
+    "Ciprofloxacin 500mg",
+    "Doxycycline 100mg",
+    "Paracetamol 500mg",
+    "Ibuprofen 200mg",
+    "Ibuprofen 400mg",
+    "ORS 1 sachet",
+    "ORS 2 sachets",
+    "Zinc 20mg",
+    "Zinc 10mg",
+    "Ferrous Sulfate 200mg",
+    "Folic Acid 400mcg",
+    "Vitamin A 200,000 IU",
+    "Multivitamins"
+]
+
+init_db()
+
+@app.route('/', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        username = request.form.get('username', '').strip()
+        password = request.form.get('password', '')
+        user = USERS.get(username)
+        if user and user.password == password:
+            if not user.is_active():
+                flash('❌ Your account has been deactivated. Please contact an administrator.', 'danger')
+                return render_template('login.html')
+            login_user(user)
+            flash(f'Welcome, {user.username}!', 'success')
+            return redirect(url_for('dashboard'))
+        flash('Invalid username or password.', 'danger')
+    return render_template('login.html')
+
+@app.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    flash('You have been logged out.', 'info')
+    return redirect(url_for('login'))
+
+@app.route('/dashboard')
+@login_required
+def dashboard():
+    try:
+        today = datetime.date.today()
+        last_7_days = [(today - datetime.timedelta(days=i)).strftime("%a %d") for i in range(6, -1, -1)]
+        conn = get_db()
+        conn.row_factory = sqlite3.Row
+        total_visits = conn.execute("SELECT COUNT(*) FROM opd_visits").fetchone()[0]
+        today_visits = conn.execute("SELECT COUNT(*) FROM opd_visits WHERE visit_date = ?", (today.isoformat(),)).fetchone()[0]
+        by_department = conn.execute("SELECT department, COUNT(*) as count FROM opd_visits GROUP BY department ORDER BY count DESC").fetchall()
+        by_sex = conn.execute("SELECT sex, COUNT(*) as count FROM opd_visits GROUP BY sex").fetchall()
+        visits_data = []
+        for i in range(6, -1, -1):
+            day = (today - datetime.timedelta(days=i)).isoformat()
+            count = conn.execute("SELECT COUNT(*) FROM opd_visits WHERE visit_date = ?", (day,)).fetchone()[0]
+            visits_data.append(count)
+        conn.close()
+        return render_template(
+            'dashboard.html', 
+            total_visits=total_visits, 
+            today_visits=today_visits, 
+            by_department=by_department, 
+            by_sex=by_sex, 
+            today=today.strftime("%Y-%m-%d"),
+            last_7_days=last_7_days,
+            visits_data=visits_data
+        )
+    except Exception as e:
+        flash(f'Error loading dashboard: {str(e)}', 'danger')
+        return redirect(url_for('login'))
+
+@app.route('/opd', methods=['GET', 'POST'])
+@login_required
+def opd_form():
+    today_str = datetime.date.today().isoformat()
+    time_str = datetime.datetime.now().strftime('%H:%M')
+    if request.method == 'POST':
+        f = request.form
+        diagnosis = f.get('diagnosis_final') or f.get('diagnosis') or ''
+        diagnosis_code = f.get('diagnosis_code') or ''
+        treatment_str = f.get('treatment_given', '').strip()
+        all_drugs = [d.strip() for d in treatment_str.split(';') if d.strip()]
+        try:
+            conn = get_db()
+            c = conn.cursor()
+            c.execute(
+                """
+                INSERT INTO opd_visits (
+                    visit_date, visit_time, patient_id, patient_name, age, sex, village, department,
+                    lab_tested, lab_test_type, lab_result, malaria_classification,
+                    diagnosis, diagnosis_code, treatment_given, outcome, referred_to,
+                    next_appointment, entered_by, timestamp
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    today_str,
+                    time_str,
+                    f.get('patient_id') or '',
+                    f.get('patient_name') or '',
+                    int(f.get('age') or 0),
+                    f.get('sex') or '',
+                    f.get('village') or '',
+                    f.get('department') or '',
+                    f.get('lab_tested') or '',
+                    f.get('lab_test_type') or '',
+                    f.get('lab_result') or '',
+                    f.get('malaria_classification') or '',
+                    diagnosis,
+                    diagnosis_code,
+                    treatment_str,
+                    f.get('outcome') or '',
+                    f.get('referred_to') or '',
+                    f.get('next_appointment') or '',
+                    current_user.username,
+                    datetime.datetime.utcnow().isoformat()
+                )
+            )
+            new_visit_id = c.lastrowid
+            for drug_name in all_drugs:
+                c.execute("SELECT id FROM drugs WHERE name = ?", (drug_name,))
+                row = c.fetchone()
+                if row:
+                    drug_id = row[0]
+                else:
+                    c.execute("INSERT INTO drugs (name, stock) VALUES (?, 0)", (drug_name,))
+                    drug_id = c.lastrowid
+                c.execute("""
+                    INSERT INTO prescriptions (opd_visit_id, drug_id, quantity_prescribed)
+                    VALUES (?, ?, 1)
+                """, (new_visit_id, drug_id))
+            conn.commit()
+            log_action('OPD_CREATE', 'opd_visit', None, {
+                'patient_name': f.get('patient_name') or '',
+                'diagnosis': diagnosis,
+                'treatment_given': treatment_str
+            })
+            conn.close()
+            flash('✅ New OPD visit recorded successfully!', 'success')
+            return redirect(url_for('opd_form'))
+        except Exception as e:
+            flash(f'❌ Error saving record: {str(e)}', 'danger')
+    try:
+        conn = get_db()
+        cur = conn.cursor()
+        cur.execute("SELECT MAX(CAST(NULLIF(patient_id, '') AS INTEGER)) FROM opd_visits")
+        row = cur.fetchone()
+        max_id = row[0] if row and row[0] is not None else 0
+        generated_id = str(int(max_id) + 1)
+        conn.close()
+    except Exception:
+        generated_id = "1"
+    return render_template('opd_form.html', 
+                          today=today_str, 
+                          now_time=time_str, 
+                          generated_id=generated_id, 
+                          disease_codes=HMIS_DISEASE_CODES,
+                          drug_list=MALAWI_DRUGS)
+
+@app.route('/opd/edit/<int:id>', methods=['GET', 'POST'])
+@login_required
+def opd_edit(id):
+    if not current_user.is_supervisor():
+        flash('⛔ Access denied. Only supervisors can edit records.', 'warning')
+        return redirect(url_for('opd_view'))
+    conn = get_db()
+    c = conn.cursor()
+    c.execute("SELECT * FROM opd_visits WHERE id = ?", (id,))
+    row = c.fetchone()
+    if not row:
+        flash('Record not found.', 'danger')
+        return redirect(url_for('opd_view'))
+    columns = [desc[0] for desc in c.description]
+    record = dict(zip(columns, row))
+    conn.close()
+    record_drugs = [d.strip() for d in (record['treatment_given'].split(';') if record['treatment_given'] else [])]
+    if request.method == 'POST':
+        f = request.form
+        diagnosis = f.get('diagnosis_final') or f.get('diagnosis') or ''
+        diagnosis_code = f.get('diagnosis_code') or ''
+        treatment_str = f.get('treatment_given', '').strip()
+        all_drugs = [d.strip() for d in treatment_str.split(';') if d.strip()]
+        try:
+            conn = get_db()
+            c = conn.cursor()
+            c.execute(
+                """
+                UPDATE opd_visits SET
+                    visit_date = ?, visit_time = ?, patient_id = ?, patient_name = ?, age = ?, sex = ?, village = ?, department = ?,
+                    lab_tested = ?, lab_test_type = ?, lab_result = ?, malaria_classification = ?,
+                    diagnosis = ?, diagnosis_code = ?, treatment_given = ?, outcome = ?, referred_to = ?,
+                    next_appointment = ?, entered_by = ?
+                WHERE id = ?
+                """,
+                (
+                    record['visit_date'],
+                    record['visit_time'],
+                    f.get('patient_id') or '',
+                    f.get('patient_name') or '',
+                    int(f.get('age') or 0),
+                    f.get('sex') or '',
+                    f.get('village') or '',
+                    f.get('department') or '',
+                    f.get('lab_tested') or '',
+                    f.get('lab_test_type') or '',
+                    f.get('lab_result') or '',
+                    f.get('malaria_classification') or '',
+                    diagnosis,
+                    diagnosis_code,
+                    treatment_str,
+                    f.get('outcome') or '',
+                    f.get('referred_to') or '',
+                    f.get('next_appointment') or '',
+                    current_user.username,
+                    id
+                )
+            )
+            c.execute("DELETE FROM prescriptions WHERE opd_visit_id = ?", (id,))
+            for drug_name in all_drugs:
+                c.execute("SELECT id FROM drugs WHERE name = ?", (drug_name,))
+                row = c.fetchone()
+                if row:
+                    drug_id = row[0]
+                else:
+                    c.execute("INSERT INTO drugs (name, stock) VALUES (?, 0)", (drug_name,))
+                    drug_id = c.lastrowid
+                c.execute("""
+                    INSERT INTO prescriptions (opd_visit_id, drug_id, quantity_prescribed)
+                    VALUES (?, ?, 1)
+                """, (id, drug_id))
+            conn.commit()
+            log_action('OPD_UPDATE', 'opd_visit', id, {
+                'patient_name': f.get('patient_name') or '',
+                'diagnosis': diagnosis,
+                'treatment_given': treatment_str
+            })
+            conn.close()
+            flash('✏️ Record updated successfully!', 'success')
+            return redirect(url_for('opd_view'))
+        except Exception as e:
+            flash(f'❌ Error updating record: {str(e)}', 'danger')
+    return render_template('opd_form.html', 
+                          record=record, 
+                          editing=True, 
+                          disease_codes=HMIS_DISEASE_CODES,
+                          drug_list=MALAWI_DRUGS,
+                          record_drugs=record_drugs)
+
+@app.route('/opd/view')
+@login_required
+def opd_view():
+    conn = get_db()
+    conn.row_factory = sqlite3.Row
+    page = request.args.get('page', 1, type=int)
+    per_page = 20
+    offset = (page - 1) * per_page
+    search_query = request.args.get('search', '').strip()
+    base_query = "SELECT * FROM opd_visits"
+    count_query = "SELECT COUNT(*) FROM opd_visits"
+    params = ()
+    if search_query:
+        like_term = f"%{search_query.lower()}%"
+        base_query += """ 
+            WHERE LOWER(patient_name) LIKE ? 
+            OR LOWER(diagnosis) LIKE ? 
+            OR CAST(id AS TEXT) LIKE ? 
+            OR LOWER(department) LIKE ?
+        """
+        params = (like_term, like_term, like_term, like_term)
+    total = conn.execute(count_query, params).fetchone()[0]
+    total_pages = (total + per_page - 1) // per_page
+    records = conn.execute(
+        base_query + " ORDER BY id DESC LIMIT ? OFFSET ?",
+        params + (per_page, offset)
+    ).fetchall()
+    conn.close()
+    return render_template(
+        'opd_view.html',
+        records=records,
+        user_role=current_user.role,
+        now=datetime.datetime.now(),
+        page=page,
+        total_pages=total_pages,
+        total_records=total,
+        search_query=search_query
+    )
+
+@app.route('/opd/export', methods=['GET', 'POST'])
+@login_required
+def opd_export():
+    month = None
+    search_query = request.args.get('search', '').strip()
+    if request.method == 'POST':
+        month = request.form.get('month')
+    conn = get_db()
+    query = "SELECT * FROM opd_visits"
+    params = ()
+    if month:
+        try:
+            year, mon = month.split('-')
+            start_date = f"{year}-{mon}-01"
+            if int(mon) == 12:
+                next_first = datetime.date(int(year) + 1, 1, 1)
+            else:
+                next_first = datetime.date(int(year), int(mon) + 1, 1)
+            end_date = (next_first - datetime.timedelta(days=1)).isoformat()
+            query += " WHERE visit_date BETWEEN ? AND ?"
+            params = (start_date, end_date)
+            if search_query:
+                like_term = f"%{search_query.lower()}%"
+                query += """ 
+                    AND (LOWER(patient_name) LIKE ? 
+                    OR LOWER(diagnosis) LIKE ? 
+                    OR CAST(id AS TEXT) LIKE ? 
+                    OR LOWER(department) LIKE ?)
+                """
+                params += (like_term, like_term, like_term, like_term)
+        except Exception:
+            flash('Invalid month. Exporting all records.', 'warning')
+            month = None
+            query = "SELECT * FROM opd_visits"
+            params = ()
+            if search_query:
+                like_term = f"%{search_query.lower()}%"
+                query += """ 
+                    WHERE LOWER(patient_name) LIKE ? 
+                    OR LOWER(diagnosis) LIKE ? 
+                    OR CAST(id AS TEXT) LIKE ? 
+                    OR LOWER(department) LIKE ?
+                """
+                params = (like_term, like_term, like_term, like_term)
+    elif search_query:
+        like_term = f"%{search_query.lower()}%"
+        query += """ 
+            WHERE LOWER(patient_name) LIKE ? 
+            OR LOWER(diagnosis) LIKE ? 
+            OR CAST(id AS TEXT) LIKE ? 
+            OR LOWER(department) LIKE ?
+        """
+        params = (like_term, like_term, like_term, like_term)
+    try:
+        df = pd.read_sql_query(query, conn, params=params)
+    except Exception as e:
+        flash(f'Error reading data: {str(e)}', 'danger')
+        return redirect(url_for('opd_view'))
+    finally:
+        conn.close()
+    if df.empty:
+        flash('No records found to export.', 'info')
+        return redirect(url_for('opd_view'))
+    parts = []
+    if month:
+        parts.append(month)
+    if search_query:
+        parts.append("filtered")
+    filename = f"opd_export_{'_'.join(parts) if parts else 'all'}.xlsx"
+    filepath = os.path.join(os.path.dirname(__file__), filename)
+    df.to_excel(filepath, index=False, engine='openpyxl')
+    return send_file(filepath, as_attachment=True)
+
+@app.route('/opd/delete/<int:id>', methods=['POST'])
+@login_required
+def opd_delete(id):
+    if not current_user.is_supervisor():
+        flash('⛔ Access denied.', 'warning')
+        return redirect(url_for('opd_view'))
+    conn = get_db()
+    c = conn.cursor()
+    c.execute("DELETE FROM opd_visits WHERE id = ?", (id,))
+    c.execute("DELETE FROM prescriptions WHERE opd_visit_id = ?", (id,))
+    conn.commit()
+    log_action('OPD_DELETE', 'opd_visit', id)
+    conn.close()
+    flash('🗑️ Record deleted!', 'success')
+    return redirect(url_for('opd_view'))
+
+@app.route('/opd/clear-all', methods=['POST'])
+@login_required
+def clear_all_data():
+    if not current_user.is_admin():
+        flash('⛔ Admin access required.', 'danger')
+        return redirect(url_for('opd_view'))
+    if request.form.get('confirm') != 'CONFIRM_CLEAR':
+        flash('❌ Invalid confirmation.', 'danger')
+        return redirect(url_for('opd_view'))
+    conn = get_db()
+    c = conn.cursor()
+    c.execute("DELETE FROM opd_visits")
+    c.execute("DELETE FROM prescriptions")
+    conn.commit()
+    conn.close()
+    flash('💥 All records cleared!', 'success')
+    return redirect(url_for('opd_view'))
+
+# 🟢 PHARMACY: MALARIA-ONLY DISPENSING
+@app.route('/pharmacy', methods=['GET', 'POST'])
+@login_required
+def pharmacy_search():
+    allowed_roles = ['pharmacist', 'supervisor', 'admin']
+    if current_user.role not in allowed_roles:
+        flash('⛔ Access denied. Pharmacy access required.', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    patient_visit = None
+    malaria_drugs = []
+    search_query = None
+
+    if request.method == 'POST':
+        search_query = request.form.get('search', '').strip()
+        if search_query:
+            conn = get_db()
+            conn.row_factory = sqlite3.Row
+            visit = conn.execute('''
+                SELECT * FROM opd_visits 
+                WHERE patient_id LIKE ? OR LOWER(patient_name) LIKE ?
+                ORDER BY id DESC LIMIT 1
+            ''', (f'%{search_query}%', f'%{search_query.lower()}%')).fetchone()
+            
+            if visit:
+                patient_visit = dict(visit)
+                if patient_visit['malaria_classification'] in ['Confirmed', 'Presumed']:
+                    malaria_drugs = conn.execute('''
+                        SELECT 
+                            p.id, p.opd_visit_id, p.drug_id, p.quantity_prescribed, p.quantity_dispensed,
+                            d.name as drug_name
+                        FROM prescriptions p
+                        JOIN drugs d ON p.drug_id = d.id
+                        WHERE p.opd_visit_id = ?
+                          AND p.quantity_dispensed < p.quantity_prescribed
+                          AND (
+                              d.name LIKE 'Artemether-Lumefantrine %'
+                              OR d.name LIKE 'ASAQ %'
+                          )
+                    ''', (visit['id'],)).fetchall()
+            conn.close()
+
+    return render_template('pharmacy_search.html', 
+                         patient_visit=patient_visit,
+                         malaria_drugs=malaria_drugs,
+                         search_query=search_query)
+
+# 🟢 PHARMACY: DISPENSE SELECTED MALARIA DRUGS
+@app.route('/pharmacy/dispense-malaria', methods=['POST'])
+@login_required
+def dispense_malaria_drugs():
+    allowed_roles = ['pharmacist', 'supervisor', 'admin']
+    if current_user.role not in allowed_roles:
+        flash('⛔ Access denied.', 'danger')
+        return redirect(url_for('pharmacy_search'))
+    
+    visit_id = request.form.get('visit_id')
+    if not visit_id:
+        flash('❌ Invalid visit.', 'danger')
+        return redirect(url_for('pharmacy_search'))
+    
+    conn = get_db()
+    conn.row_factory = sqlite3.Row
+    c = conn.cursor()
+    
+    patient_info = conn.execute('SELECT patient_name, patient_id FROM opd_visits WHERE id = ?', (visit_id,)).fetchone()
+    patient_name = patient_info['patient_name'] if patient_info else 'Unknown'
+    patient_id = patient_info['patient_id'] if patient_info else 'Unknown'
+    
+    dispensed_drugs = []
+    for key in request.form.keys():
+        if key.startswith('drug_'):
+            prescription_id = key.replace('drug_', '')
+            try:
+                prescription_id = int(prescription_id)
+                c.execute('''
+                    SELECT p.quantity_prescribed, p.quantity_dispensed, d.name, d.id as drug_id
+                    FROM prescriptions p
+                    JOIN drugs d ON p.drug_id = d.id
+                    WHERE p.id = ?
+                ''', (prescription_id,))
+                row = c.fetchone()
+                if row:
+                    qty_prescribed = row['quantity_prescribed']
+                    qty_dispensed = row['quantity_dispensed']
+                    drug_name = row['name']
+                    drug_id = row['drug_id']
+                    if qty_dispensed < qty_prescribed:
+                        qty_to_dispense = qty_prescribed - qty_dispensed
+                        c.execute('''
+                            UPDATE prescriptions 
+                            SET quantity_dispensed = ?, dispensed_by = ?, dispensed_at = ?
+                            WHERE id = ?
+                        ''', (qty_prescribed, current_user.username, datetime.datetime.utcnow().isoformat(), prescription_id))
+                        c.execute('UPDATE drugs SET stock = stock - ? WHERE id = ?', (qty_to_dispense, drug_id))
+                        dispensed_drugs.append(drug_name)
+                        log_action('PHARMACY_DISPENSE_MALARIA', 'prescription', prescription_id, {
+                            'drug': drug_name,
+                            'quantity': qty_to_dispense,
+                            'patient': f"{patient_name} (ID: {patient_id})"
+                        })
+            except (ValueError, TypeError):
+                continue
+    
+    conn.commit()
+    conn.close()
+    
+    if dispensed_drugs:
+        flash(f'✅ Dispensed: {", ".join(dispensed_drugs)}', 'success')
+    else:
+        flash('⚠️ No new drugs dispensed.', 'warning')
+    
+    return redirect(url_for('pharmacy_search'))
+
+@app.route('/admin')
+@login_required
+def admin_tools():
+    if not current_user.is_admin():
+        flash('⛔ Access denied. Only admins can access this page.', 'warning')
+        return redirect(url_for('opd_view'))
+    conn = get_db()
+    conn.row_factory = sqlite3.Row
+    records = conn.execute("SELECT * FROM opd_visits ORDER BY id DESC LIMIT 20").fetchall()
+    total_visits = conn.execute("SELECT COUNT(*) FROM opd_visits").fetchone()[0]
+    conn.close()
+    return render_template('admin_tools.html', records=records, total_visits=total_visits)
+
+@app.route('/reports/hmis15', methods=['GET', 'POST'])
+@login_required
+def reports_hmis15():
+    month = request.args.get('month')
+    if not month:
+        month = datetime.date.today().strftime('%Y-%m')
+    try:
+        year, mon = month.split('-')
+        start_date = f"{year}-{mon}-01"
+        if int(mon) == 12:
+            next_first = datetime.date(int(year) + 1, 1, 1)
+        else:
+            next_first = datetime.date(int(year), int(mon) + 1, 1)
+        end_date = (next_first - datetime.timedelta(days=1)).isoformat()
+    except Exception:
+        month = datetime.date.today().strftime('%Y-%m')
+        year, mon = month.split('-')
+        start_date = f"{year}-{mon}-01"
+        if int(mon) == 12:
+            next_first = datetime.date(int(year) + 1, 1, 1)
+        else:
+            next_first = datetime.date(int(year), int(mon) + 1, 1)
+        end_date = (next_first - datetime.timedelta(days=1)).isoformat()
+    conn = get_db()
+    conn.row_factory = sqlite3.Row
+    opd_total = conn.execute("SELECT COUNT(*) FROM opd_visits WHERE visit_date BETWEEN ? AND ?", (start_date, end_date)).fetchone()[0]
+    malaria_u5 = conn.execute("SELECT COUNT(*) FROM opd_visits WHERE age < 5 AND LOWER(diagnosis) LIKE '%malaria%' AND visit_date BETWEEN ? AND ?", (start_date, end_date)).fetchone()[0]
+    malaria_o5 = conn.execute("SELECT COUNT(*) FROM opd_visits WHERE age >= 5 AND LOWER(diagnosis) LIKE '%malaria%' AND visit_date BETWEEN ? AND ?", (start_date, end_date)).fetchone()[0]
+    pneumonia_count = conn.execute("SELECT COUNT(*) FROM opd_visits WHERE LOWER(diagnosis) LIKE '%pneumonia%' AND visit_date BETWEEN ? AND ?", (start_date, end_date)).fetchone()[0]
+    hypertension_count = conn.execute("SELECT COUNT(*) FROM opd_visits WHERE LOWER(diagnosis) LIKE '%hypertension%' AND visit_date BETWEEN ? AND ?", (start_date, end_date)).fetchone()[0]
+    diabetes_count = conn.execute("SELECT COUNT(*) FROM opd_visits WHERE LOWER(diagnosis) LIKE '%diabetes%' AND visit_date BETWEEN ? AND ?", (start_date, end_date)).fetchone()[0]
+    diarrhea_count = conn.execute("SELECT COUNT(*) FROM opd_visits WHERE LOWER(diagnosis) LIKE '%diarrhea%' AND visit_date BETWEEN ? AND ?", (start_date, end_date)).fetchone()[0]
+    uti_count = conn.execute("SELECT COUNT(*) FROM opd_visits WHERE LOWER(diagnosis) LIKE '%uti%' AND visit_date BETWEEN ? AND ?", (start_date, end_date)).fetchone()[0]
+    conn.close()
+    d = {
+        'month': month,
+        'opd_total': opd_total,
+        'malaria_u5': malaria_u5,
+        'malaria_o5': malaria_o5,
+        'pneumonia_count': pneumonia_count,
+        'hypertension_count': hypertension_count,
+        'diabetes_count': diabetes_count,
+        'diarrhea_count': diarrhea_count,
+        'uti_count': uti_count,
+    }
+    return render_template('reports_hmis15.html', d=d)
+
+# 🟢 UPDATED MALARIA REPORT WITH AUTO-CALCULATED COMMODITIES
+@app.route('/reports/malaria', methods=['GET', 'POST'])
+@login_required
+def reports_malaria():
+    month = request.args.get('month')
+    if not month:
+        month = datetime.date.today().strftime('%Y-%m')
+    try:
+        year, mon = month.split('-')
+        start_date = f"{year}-{mon}-01"
+        if int(mon) == 12:
+            next_first = datetime.date(int(year) + 1, 1, 1)
+        else:
+            next_first = datetime.date(int(year), int(mon) + 1, 1)
+        end_date = (next_first - datetime.timedelta(days=1)).isoformat()
+    except Exception:
+        month = datetime.date.today().strftime('%Y-%m')
+        year, mon = month.split('-')
+        start_date = f"{year}-{mon}-01"
+        if int(mon) == 12:
+            next_first = datetime.date(int(year) + 1, 1, 1)
+        else:
+            next_first = datetime.date(int(year), int(mon) + 1, 1)
+        end_date = (next_first - datetime.timedelta(days=1)).isoformat()
+
+    conn = get_db()
+    conn.row_factory = sqlite3.Row
+
+    conf_u5 = conn.execute("SELECT COUNT(*) FROM opd_visits WHERE age < 5 AND malaria_classification = 'Confirmed' AND visit_date BETWEEN ? AND ?", (start_date, end_date)).fetchone()[0]
+    conf_o5 = conn.execute("SELECT COUNT(*) FROM opd_visits WHERE age >= 5 AND malaria_classification = 'Confirmed' AND visit_date BETWEEN ? AND ?", (start_date, end_date)).fetchone()[0]
+    pres_u5 = conn.execute("SELECT COUNT(*) FROM opd_visits WHERE age < 5 AND malaria_classification = 'Presumed' AND visit_date BETWEEN ? AND ?", (start_date, end_date)).fetchone()[0]
+    pres_o5 = conn.execute("SELECT COUNT(*) FROM opd_visits WHERE age >= 5 AND malaria_classification = 'Presumed' AND visit_date BETWEEN ? AND ?", (start_date, end_date)).fetchone()[0]
+    opd_u5 = conn.execute("SELECT COUNT(*) FROM opd_visits WHERE age < 5 AND visit_date BETWEEN ? AND ?", (start_date, end_date)).fetchone()[0]
+    opd_o5 = conn.execute("SELECT COUNT(*) FROM opd_visits WHERE age >= 5 AND visit_date BETWEEN ? AND ?", (start_date, end_date)).fetchone()[0]
+    la_u5 = conn.execute("SELECT COUNT(*) FROM opd_visits WHERE age < 5 AND LOWER(treatment_given) LIKE '%artemether-lumefantrine%' AND visit_date BETWEEN ? AND ?", (start_date, end_date)).fetchone()[0]
+    la_o5 = conn.execute("SELECT COUNT(*) FROM opd_visits WHERE age >= 5 AND LOWER(treatment_given) LIKE '%artemether-lumefantrine%' AND visit_date BETWEEN ? AND ?", (start_date, end_date)).fetchone()[0]
+    asaq_u5 = conn.execute("SELECT COUNT(*) FROM opd_visits WHERE age < 5 AND LOWER(treatment_given) LIKE '%asaq%' AND visit_date BETWEEN ? AND ?", (start_date, end_date)).fetchone()[0]
+    asaq_o5 = conn.execute("SELECT COUNT(*) FROM opd_visits WHERE age >= 5 AND LOWER(treatment_given) LIKE '%asaq%' AND visit_date BETWEEN ? AND ?", (start_date, end_date)).fetchone()[0]
+    mrdt_tested_u5 = conn.execute("SELECT COUNT(*) FROM opd_visits WHERE age < 5 AND lab_tested = 'Yes' AND lab_test_type = 'mRDT' AND visit_date BETWEEN ? AND ?", (start_date, end_date)).fetchone()[0]
+    mrdt_tested_o5 = conn.execute("SELECT COUNT(*) FROM opd_visits WHERE age >= 5 AND lab_tested = 'Yes' AND lab_test_type = 'mRDT' AND visit_date BETWEEN ? AND ?", (start_date, end_date)).fetchone()[0]
+    mrdt_pos_u5 = conn.execute("SELECT COUNT(*) FROM opd_visits WHERE age < 5 AND lab_tested = 'Yes' AND lab_test_type = 'mRDT' AND lab_result = 'Positive' AND visit_date BETWEEN ? AND ?", (start_date, end_date)).fetchone()[0]
+    mrdt_pos_o5 = conn.execute("SELECT COUNT(*) FROM opd_visits WHERE age >= 5 AND lab_tested = 'Yes' AND lab_test_type = 'mRDT' AND lab_result = 'Positive' AND visit_date BETWEEN ? AND ?", (start_date, end_date)).fetchone()[0]
+    micro_tested_u5 = conn.execute("SELECT COUNT(*) FROM opd_visits WHERE age < 5 AND lab_tested = 'Yes' AND lab_test_type = 'Other' AND visit_date BETWEEN ? AND ?", (start_date, end_date)).fetchone()[0]
+    micro_tested_o5 = conn.execute("SELECT COUNT(*) FROM opd_visits WHERE age >= 5 AND lab_tested = 'Yes' AND lab_test_type = 'Other' AND visit_date BETWEEN ? AND ?", (start_date, end_date)).fetchone()[0]
+    micro_pos_u5 = conn.execute("SELECT COUNT(*) FROM opd_visits WHERE age < 5 AND lab_tested = 'Yes' AND lab_test_type = 'Other' AND lab_result = 'Positive' AND visit_date BETWEEN ? AND ?", (start_date, end_date)).fetchone()[0]
+    micro_pos_o5 = conn.execute("SELECT COUNT(*) FROM opd_visits WHERE age >= 5 AND lab_tested = 'Yes' AND lab_test_type = 'Other' AND lab_result = 'Positive' AND visit_date BETWEEN ? AND ?", (start_date, end_date)).fetchone()[0]
+
+    # === AUTO-CALCULATE LA COMMODITIES FROM PRESCRIPTIONS ===
+    la_counts = {"LA 1X6": 0, "LA 2X6": 0, "LA 3X6": 0, "LA 4X6": 0}
+    strength_to_la = {
+        "Artemether-Lumefantrine 20mg/120mg": "LA 1X6",
+        "Artemether-Lumefantrine 40mg/240mg": "LA 2X6",
+        "Artemether-Lumefantrine 60mg/360mg": "LA 3X6",
+        "Artemether-Lumefantrine 80mg/480mg": "LA 4X6"
+    }
+
+    al_prescriptions = conn.execute('''
+        SELECT d.name, SUM(p.quantity_dispensed) as total_dispensed
+        FROM prescriptions p
+        JOIN drugs d ON p.drug_id = d.id
+        JOIN opd_visits v ON p.opd_visit_id = v.id
+        WHERE v.visit_date BETWEEN ? AND ?
+        AND d.name LIKE 'Artemether-Lumefantrine %'
+        GROUP BY d.name
+    ''', (start_date, end_date)).fetchall()
+
+    for row in al_prescriptions:
+        drug_name = row['name']
+        qty = row['total_dispensed'] or 0
+        for strength, la_code in strength_to_la.items():
+            if drug_name.startswith(strength):
+                la_counts[la_code] += qty
+                break
+
+    # === ASAQ COUNTS ===
+    asaq_counts = {
+        'ASAQ 25mg/67.5mg (3 tablets)': 0,
+        'ASAQ 50mg/135mg (3 tablets)': 0,
+        'ASAQ 100mg/270mg (3 tablets)': 0,
+        'ASAQ 100mg/270mg (6 tablets)': 0
+    }
+    asaq_prescriptions = conn.execute('''
+        SELECT d.name, SUM(p.quantity_dispensed) as total_dispensed
+        FROM prescriptions p
+        JOIN drugs d ON p.drug_id = d.id
+        JOIN opd_visits v ON p.opd_visit_id = v.id
+        WHERE v.visit_date BETWEEN ? AND ?
+        AND d.name LIKE 'ASAQ %'
+        GROUP BY d.name
+    ''', (start_date, end_date)).fetchall()
+
+    for row in asaq_prescriptions:
+        drug_name = row['name']
+        qty = row['total_dispensed'] or 0
+        if drug_name in asaq_counts:
+            asaq_counts[drug_name] = qty
+
+    conn.close()
+
+    data = {
+        'month': month,
+        'A_u5': conf_u5,
+        'A_o5': conf_o5,
+        'B_u5': pres_u5,
+        'B_o5': pres_o5,
+        'C_preg': 0,
+        'D_preg': 0,
+        'F_u5': opd_u5,
+        'F_o5': opd_o5,
+        'G_u5': 0,
+        'G_o5': 0,
+        'H_u5': la_u5,
+        'H_o5': la_o5,
+        'I_u5': 0,
+        'I_o5': 0,
+        'J_u5': asaq_u5,
+        'J_o5': asaq_o5,
+        'K_u5': 0,
+        'K_o5': 0,
+        'L_u5': mrdt_tested_u5,
+        'L_o5': mrdt_tested_o5,
+        'M_u5': mrdt_pos_u5,
+        'M_o5': mrdt_pos_o5,
+        'N_u5': micro_tested_u5,
+        'N_o5': micro_tested_o5,
+        'O_u5': micro_pos_u5,
+        'O_o5': micro_pos_o5,
+        'Q_u5': 0,
+        'Q_o5': 0,
+        'R_u5': 0,
+        'R_o5': 0,
+        'S_u5': 0,
+        'S_o5': 0,
+        'T_preg': 0,
+        'U_u5': 0,
+        'U_o5': 0,
+        'X_u5': 0,
+        'X_o5': 0,
+        'Y_u5': 0,
+        'Y_o5': 0,
+        'Z_u5': 0,
+        'Z_o5': 0,
+        'ZA_u5': 0,
+        'ZA_o5': 0,
+        'commodities': {
+            'LA 1X6': la_counts['LA 1X6']*6,
+            'LA 2X6': la_counts['LA 2X6']*12,
+            'LA 3X6': la_counts['LA 3X6']*18,
+            'LA 4X6': la_counts['LA 4X6']*24,
+            'ITN Distributed to Pregnant women': 0,
+            'ITN Distributed to Newborn babies': 0,
+            'SP': 0,
+            'RDTs': 0,
+            **asaq_counts
+        }
+    }
+
+    data['E_u5'] = data['A_u5'] + data['B_u5'] + data['C_preg'] + data['D_preg']
+    data['E_o5'] = data['A_o5'] + data['B_o5']
+    data['P_u5'] = data['B_u5'] + data['D_preg'] + data['L_u5'] + data['N_u5']
+    data['P_o5'] = data['B_o5'] + data['L_o5'] + data['N_o5']
+    data['V_u5'] = data['Q_u5'] + data['S_u5'] + data['U_u5']
+    data['V_o5'] = data['Q_o5'] + data['S_o5'] + data['U_o5']
+    data['W_u5'] = data['R_u5'] + data['S_u5'] + data['T_preg'] + data['U_u5']
+    data['W_o5'] = data['R_o5'] + data['S_o5'] + data['U_o5']
+
+    return render_template('reports_malaria.html', d=data)
+
+@app.route('/reports', methods=['GET', 'POST'])
+@login_required
+def reports():
+    if request.method == 'POST':
+        selected = request.form.get('report_type') or ''
+        month_sel = request.form.get('month') or ''
+        if selected == 'malaria':
+            return redirect(url_for('reports_malaria', month=month_sel))
+        if selected == 'hmis15':
+            return redirect(url_for('reports_hmis15', month=month_sel))
+    month = request.args.get('month')
+    if not month:
+        month = datetime.date.today().strftime('%Y-%m')
+    return render_template('reports.html', month=month)
+
+@app.route('/ministry.jpg')
+def serve_logo():
+    return send_from_directory(os.path.dirname(__file__), 'ministry.jpg')
+
+@app.route('/admin/users')
+@login_required
+def user_management():
+    if not current_user.is_admin():
+        flash('⛔ Access denied. Only admins can manage users.', 'warning')
+        return redirect(url_for('dashboard'))
+    return render_template('users.html', users=USERS)
+
+@app.route('/admin/users/add', methods=['GET', 'POST'])
+@login_required
+def add_user():
+    if not current_user.is_admin():
+        flash('⛔ Access denied. Only admins can add users.', 'warning')
+        return redirect(url_for('dashboard'))
+    if request.method == 'POST':
+        username = request.form.get('username', '').strip()
+        password = request.form.get('password', '')
+        role = request.form.get('role', 'clerk')
+        if not username or not password:
+            flash('❌ Username and password are required.', 'danger')
+            return render_template('add_user.html')
+        if username in USERS:
+            flash('❌ Username already exists.', 'danger')
+            return render_template('add_user.html')
+        max_id = max([u.id for u in USERS.values()]) if USERS else 0
+        new_id = max_id + 1
+        USERS[username] = User(new_id, username, password, role, True)
+        log_action('USER_CREATE', 'user', username, {'role': role})
+        flash(f'✅ User {username} created successfully!', 'success')
+        return redirect(url_for('user_management'))
+    return render_template('add_user.html')
+
+@app.route('/admin/users/toggle/<username>', methods=['POST'])
+@login_required
+def toggle_user_status(username):
+    if not current_user.is_admin():
+        flash('⛔ Access denied. Only admins can manage users.', 'warning')
+        return redirect(url_for('dashboard'))
+    if username in USERS and username != 'admin':
+        user = USERS[username]
+        user.active = not user.active
+        status = "activated" if user.active else "deactivated"
+        log_action('USER_TOGGLE', 'user', username, {'active': user.active})
+        flash(f'✅ User {username} has been {status}!', 'success')
+    else:
+        flash('❌ Cannot modify this user.', 'danger')
+    return redirect(url_for('user_management'))
+
+@app.route('/admin/users/delete/<username>', methods=['POST'])
+@login_required
+def delete_user(username):
+    if not current_user.is_admin():
+        flash('⛔ Access denied. Only admins can delete users.', 'warning')
+        return redirect(url_for('dashboard'))
+    if username in USERS and username != 'admin':
+        del USERS[username]
+        flash(f'✅ User {username} deleted successfully!', 'success')
+    else:
+        flash('❌ Cannot delete this user.', 'danger')
+    return redirect(url_for('user_management'))
+
+@app.route('/admin/audit')
+@login_required
+def audit_log():
+    if not current_user.is_admin():
+        flash('⛔ Access denied. Only admins can view audit logs.', 'warning')
+        return redirect(url_for('dashboard'))
+    conn = get_db()
+    conn.row_factory = sqlite3.Row
+    rows = conn.execute("SELECT * FROM audit_log ORDER BY id DESC LIMIT 500").fetchall()
+    conn.close()
+    logs = []
+    for row in rows:
+        d = dict(row)
+        logs.append({
+            'timestamp': d.get('timestamp'),
+            'action': d.get('action'),
+            'record_id': d.get('entity_id') or d.get('record_id'),
+            'user': d.get('user'),
+            'details': d.get('details')
+        })
+    return render_template('audit_log.html', logs=logs)
+
+@app.route('/opd/receipt/<int:id>')
+@login_required
+def print_receipt(id):
+    conn = get_db()
+    c = conn.cursor()
+    c.execute("SELECT * FROM opd_visits WHERE id = ?", (id,))
+    row = c.fetchone()
+    if not row:
+        flash('Record not found.', 'danger')
+        return redirect(url_for('opd_view'))
+    columns = [desc[0] for desc in c.description]
+    record = dict(zip(columns, row))
+    conn.close()
+    return render_template('receipt.html', record=record)
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5001, debug=True)

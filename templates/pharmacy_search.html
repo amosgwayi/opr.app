@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+{% block title %}Pharmacy - Malaria Dispensing{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card shadow">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">
+                    💊 Malaria Pharmacy: Search Patient by ID or Name
+                </h6>
+            </div>
+            <div class="card-body">
+                <form method="POST" class="mb-4">
+                    <div class="input-group">
+                        <input 
+                            type="text" 
+                            name="search" 
+                            class="form-control" 
+                            placeholder="Enter Patient ID or Full Name..." 
+                            value="{{ search_query or '' }}" 
+                            required
+                        >
+                        <button class="btn btn-primary" type="submit">
+                            <i class="bi bi-search"></i> Search
+                        </button>
+                    </div>
+                </form>
+
+                {% if patient_visit %}
+                <div class="alert alert-info mb-4">
+                    <h5><i class="bi bi-person-circle"></i> Patient Details</h5>
+                    <div class="row">
+                        <div class="col-md-4"><strong>Name:</strong> {{ patient_visit.patient_name }}</div>
+                        <div class="col-md-4"><strong>ID:</strong> {{ patient_visit.patient_id }}</div>
+                        <div class="col-md-4"><strong>Age/Sex:</strong> {{ patient_visit.age }} / {{ patient_visit.sex }}</div>
+                        <div class="col-md-4"><strong>Village:</strong> {{ patient_visit.village or 'N/A' }}</div>
+                        <div class="col-md-4"><strong>Department:</strong> {{ patient_visit.department }}</div>
+                        <div class="col-md-4"><strong>Visit Date:</strong> {{ patient_visit.visit_date }}</div>
+                        <div class="col-md-6"><strong>Diagnosis:</strong> {{ patient_visit.diagnosis }}</div>
+                        <div class="col-md-6">
+                            <strong>Malaria Status:</strong> 
+                            {% if patient_visit.malaria_classification == 'Confirmed' %}
+                                <span class="badge bg-success">Confirmed</span>
+                            {% elif patient_visit.malaria_classification == 'Presumed' %}
+                                <span class="badge bg-warning text-dark">Presumed</span>
+                            {% else %}
+                                <span class="badge bg-secondary">Not Malaria</span>
+                            {% endif %}
+                        </div>
+                        {% if patient_visit.lab_tested == 'Yes' %}
+                        <div class="col-md-12">
+                            <strong>Lab Result:</strong> {{ patient_visit.lab_test_type }} → {{ patient_visit.lab_result }}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                {% if patient_visit.malaria_classification in ['Confirmed', 'Presumed'] %}
+                    {% if malaria_drugs %}
+                    <form method="POST" action="{{ url_for('dispense_malaria_drugs') }}">
+                        <input type="hidden" name="visit_id" value="{{ patient_visit.id }}">
+                        <h5>📋 Malaria Drugs to Dispense</h5>
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Select</th>
+                                        <th>Drug</th>
+                                        <th>Prescribed</th>
+                                        <th>Dispensed</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for p in malaria_drugs %}
+                                    <tr>
+                                        <td>
+                                            <input 
+                                                type="checkbox" 
+                                                name="drug_{{ p.id }}" 
+                                                id="drug_{{ p.id }}"
+                                                {% if p.quantity_dispensed > 0 %}disabled checked{% endif %}
+                                            >
+                                        </td>
+                                        <td>{{ p.drug_name }}</td>
+                                        <td>{{ p.quantity_prescribed }}</td>
+                                        <td>{{ p.quantity_dispensed }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        <button type="submit" class="btn btn-success">
+                            <i class="bi bi-check-circle"></i> Dispense Selected Drugs
+                        </button>
+                    </form>
+                    {% else %}
+                    <div class="alert alert-warning">
+                        <i class="bi bi-exclamation-triangle"></i> No malaria drugs prescribed for this visit.
+                    </div>
+                    {% endif %}
+                {% else %}
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle"></i> Patient is not diagnosed with malaria (Confirmed/Presumed).
+                </div>
+                {% endif %}
+
+                {% else %}
+                    {% if search_query %}
+                    <div class="text-center py-4 text-muted">
+                        <i class="bi bi-exclamation-circle fs-1 mb-2"></i>
+                        <h5>No patient found for "{{ search_query }}"</h5>
+                    </div>
+                    {% endif %}
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

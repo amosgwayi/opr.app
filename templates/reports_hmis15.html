@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HMIS 15</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="/dashboard"><i class="bi bi-hospital me-2"></i>OPD System</a>
+            <div class="d-flex gap-2">
+                <a class="btn btn-outline-light btn-sm" href="/reports"><i class="bi bi-graph-up"></i> Reports</a>
+                <a class="btn btn-outline-light btn-sm" href="/logout"><i class="bi bi-box-arrow-right"></i> Logout</a>
+            </div>
+        </div>
+    </nav>
+    <main class="container py-4">
+        <div class="card shadow-sm mb-3">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h4 class="mb-0">HMIS 15</h4>
+                    <div class="btn-group">
+                        <button class="btn btn-outline-primary" onclick="window.print()">
+                            <i class="bi bi-printer"></i> Print
+                        </button>
+                        <button class="btn btn-outline-success" onclick="exportToExcel()">
+                            <i class="bi bi-file-earmark-excel"></i> Export Excel
+                        </button>
+                    </div>
+                </div>
+                <form class="row g-2" method="get">
+                    <div class="col-auto"><label class="col-form-label">Month</label></div>
+                    <div class="col-auto"><input type="month" class="form-control" name="month" value="{{ d.month }}"></div>
+                    <div class="col-auto"><button class="btn btn-primary" type="submit"><i class="bi bi-funnel"></i> Filter</button></div>
+                </form>
+            </div>
+        </div>
+        <div class="card shadow-sm mb-4">
+            <div class="card-body">
+                <h5>Maternal Services</h5>
+                <table class="table table-bordered">
+                    <tbody>
+                        <tr><td>39 Number of pregnant women starting antenatal care during their first trimester</td><td class="text-end">
+                            {% if current_user.is_supervisor() %}
+                            <input type="number" name="antenatal_first_trimester" value="0" class="form-control form-control-sm text-end">
+                            {% else %}
+                            0
+                            {% endif %}
+                        </td></tr>
+                        <tr><td>40 Total number of new antenatal attendees</td><td class="text-end">
+                            {% if current_user.is_supervisor() %}
+                            <input type="number" name="antenatal_attendees" value="0" class="form-control form-control-sm text-end">
+                            {% else %}
+                            0
+                            {% endif %}
+                        </td></tr>
+                        <tr><td>40 Total antenatal visits</td><td class="text-end">
+                            {% if current_user.is_supervisor() %}
+                            <input type="number" name="antenatal_visits" value="0" class="form-control form-control-sm text-end">
+                            {% else %}
+                            0
+                            {% endif %}
+                        </td></tr>
+                        <tr><td>41 Number of deliveries attended by skilled health personnel</td><td class="text-end">
+                            {% if current_user.is_supervisor() %}
+                            <input type="number" name="skilled_deliveries" value="0" class="form-control form-control-sm text-end">
+                            {% else %}
+                            0
+                            {% endif %}
+                        </td></tr>
+                        <tr><td>42 Number of women obstetric complications treated at obstetric care facility</td><td class="text-end">
+                            {% if current_user.is_supervisor() %}
+                            <input type="number" name="obstetric_complications" value="0" class="form-control form-control-sm text-end">
+                            {% else %}
+                            0
+                            {% endif %}
+                        </td></tr>
+                        <tr><td>43 Number of caesarean sections</td><td class="text-end">
+                            {% if current_user.is_supervisor() %}
+                            <input type="number" name="caesarean_sections" value="0" class="form-control form-control-sm text-end">
+                            {% else %}
+                            0
+                            {% endif %}
+                        </td></tr>
+                        <tr><td>44 Total number of live births</td><td class="text-end">
+                            {% if current_user.is_supervisor() %}
+                            <input type="number" name="live_births" value="0" class="form-control form-control-sm text-end">
+                            {% else %}
+                            0
+                            {% endif %}
+                        </td></tr>
+                        <tr><td>44 Number of babies born with weight less than 2500g</td><td class="text-end">
+                            {% if current_user.is_supervisor() %}
+                            <input type="number" name="low_birth_weight" value="0" class="form-control form-control-sm text-end">
+                            {% else %}
+                            0
+                            {% endif %}
+                        </td></tr>
+                        <tr><td>45 Number of abortion complications treated</td><td class="text-end">
+                            {% if current_user.is_supervisor() %}
+                            <input type="number" name="abortion_complications" value="0" class="form-control form-control-sm text-end">
+                            {% else %}
+                            0
+                            {% endif %}
+                        </td></tr>
+                        <tr><td>46 Number of eclampsia cases treated</td><td class="text-end">
+                            {% if current_user.is_supervisor() %}
+                            <input type="number" name="eclampsia_cases" value="0" class="form-control form-control-sm text-end">
+                            {% else %}
+                            0
+                            {% endif %}
+                        </td></tr>
+                        <tr><td>47 Number of postpartum haemorrhage (PPH) cases treated</td><td class="text-end">
+                            {% if current_user.is_supervisor() %}
+                            <input type="number" name="pph_cases" value="0" class="form-control form-control-sm text-end">
+                            {% else %}
+                            0
+                            {% endif %}
+                        </td></tr>
+                        <tr><td>48 Number of sepsis cases treated</td><td class="text-end">
+                            {% if current_user.is_supervisor() %}
+                            <input type="number" name="sepsis_cases" value="0" class="form-control form-control-sm text-end">
+                            {% else %}
+                            0
+                            {% endif %}
+                        </td></tr>
+                        <tr><td>49 Number of pregnant women treated for severe anaemia</td><td class="text-end">
+                            {% if current_user.is_supervisor() %}
+                            <input type="number" name="severe_anaemia" value="0" class="form-control form-control-sm text-end">
+                            {% else %}
+                            0
+                            {% endif %}
+                        </td></tr>
+                        <tr><td>51 Number of newborn treated for complications</td><td class="text-end">
+                            {% if current_user.is_supervisor() %}
+                            <input type="number" name="newborn_complications" value="0" class="form-control form-control-sm text-end">
+                            {% else %}
+                            0
+                            {% endif %}
+                        </td></tr>
+                        <tr><td>52 Number of postpartum care within 2 weeks of delivery</td><td class="text-end">
+                            {% if current_user.is_supervisor() %}
+                            <input type="number" name="postpartum_care" value="0" class="form-control form-control-sm text-end">
+                            {% else %}
+                            0
+                            {% endif %}
+                        </td></tr>
+                    </tbody>
+                </table>
+                <h5>Family Planning</h5>
+                <table class="table table-bordered">
+                    <tbody>
+                        <tr><td>53a Number of persons receiving 3 months supply of condoms</td><td class="text-end">
+                            {% if current_user.is_supervisor() %}
+                            <input type="number" name="condoms_3months" value="0" class="form-control form-control-sm text-end">
+                            {% else %}
+                            0
+                            {% endif %}
+                        </td></tr>
+                        <tr><td>b Number of persons receiving 3 months of oral pills</td><td class="text-end">
+                            {% if current_user.is_supervisor() %}
+                            <input type="number" name="oral_pills_3months" value="0" class="form-control form-control-sm text-end">
+                            {% else %}
+                            0
+                            {% endif %}
+                        </td></tr>
+                        <tr><td>c Number of persons receiving Depo-Provera</td><td class="text-end">
+                            {% if current_user.is_supervisor() %}
+                            <input type="number" name="depo_provera" value="0" class="form-control form-control-sm text-end">
+                            {% else %}
+                            0
+                            {% endif %}
+                        </td></tr>
+                        <tr><td>d Number of persons receiving Norplant</td><td class="text-end">
+                            {% if current_user.is_supervisor() %}
+                            <input type="number" name="norplant" value="0" class="form-control form-control-sm text-end">
+                            {% else %}
+                            0
+                            {% endif %}
+                        </td></tr>
+                        <tr><td>e Number of persons receiving IUCD</td><td class="text-end">
+                            {% if current_user.is_supervisor() %}
+                            <input type="number" name="iucd" value="0" class="form-control form-control-sm text-end">
+                            {% else %}
+                            0
+                            {% endif %}
+                        </td></tr>
+                        <tr><td>f Number of persons receiving sterilisation method of FP</td><td class="text-end">
+                            {% if current_user.is_supervisor() %}
+                            <input type="number" name="sterilisation" value="0" class="form-control form-control-sm text-end">
+                            {% else %}
+                            0
+                            {% endif %}
+                        </td></tr>
+                    </tbody>
+                </table>
+                <h5>Child Health</h5>
+                <table class="table table-bordered">
+                    <tbody>
+                        <tr><td>55 Number of fully immunised under 1 children</td><td class="text-end">
+                            {% if current_user.is_supervisor() %}
+                            <input type="number" name="fully_immunised" value="0" class="form-control form-control-sm text-end">
+                            {% else %}
+                            0
+                            {% endif %}
+                        </td></tr>
+                        <tr><td>56 Number of under 1 children given BCG</td><td class="text-end">
+                            {% if current_user.is_supervisor() %}
+                            <input type="number" name="bcg" value="0" class="form-control form-control-sm text-end">
+                            {% else %}
+                            0
+                            {% endif %}
+                        </td></tr>
+                        <tr><td>56 Number of under 1 children given pentavalent - III</td><td class="text-end">
+                            {% if current_user.is_supervisor() %}
+                            <input type="number" name="pentavalent_iii" value="0" class="form-control form-control-sm text-end">
+                            {% else %}
+                            0
+                            {% endif %}
+                        </td></tr>
+                        <tr><td>56 Number of under 1 children given polio - III</td><td class="text-end">
+                            {% if current_user.is_supervisor() %}
+                            <input type="number" name="polio_iii" value="0" class="form-control form-control-sm text-end">
+                            {% else %}
+                            0
+                            {% endif %}
+                        </td></tr>
+                        <tr><td>56 Number of under 1 children given measles 1st doses at 9M</td><td class="text-end">
+                            {% if current_user.is_supervisor() %}
+                            <input type="number" name="measles_9m" value="0" class="form-control form-control-sm text-end">
+                            {% else %}
+                            0
+                            {% endif %}
+                        </td></tr>
+                        <tr><td>57 Number of Vitamin A doses given to 6 - 59 M population</td><td class="text-end">
+                            {% if current_user.is_supervisor() %}
+                            <input type="number" name="vitamin_a" value="0" class="form-control form-control-sm text-end">
+                            {% else %}
+                            0
+                            {% endif %}
+                        </td></tr>
+                        <tr><td>62 Number of under-weight in under fives attending clinic</td><td class="text-end">
+                            {% if current_user.is_supervisor() %}
+                            <input type="number" name="under_weight" value="0" class="form-control form-control-sm text-end">
+                            {% else %}
+                            0
+                            {% endif %}
+                        </td></tr>
+                    </tbody>
+                </table>
+                <h5>Attendance</h5>
+                <table class="table table-bordered">
+                    <tbody>
+                        <tr><td>30 Num of 15 - 49 years receiving volunteer & confidential testing and serostatus</td><td class="text-end">
+                            {% if current_user.is_supervisor() %}
+                            <input type="number" name="vct_15_49" value="0" class="form-control form-control-sm text-end">
+                            {% else %}
+                            0
+                            {% endif %}
+                        </td></tr>
+                        <tr><td>31 Number of 15 - 49 age group tested HIV positive</td><td class="text-end">
+                            {% if current_user.is_supervisor() %}
+                            <input type="number" name="hiv_positive_15_49" value="0" class="form-control form-control-sm text-end">
+                            {% else %}
+                            0
+                            {% endif %}
+                        </td></tr>
+                        <tr><td>32 Number of HIV positive persons receiving ARV treatment</td><td class="text-end">
+                            {% if current_user.is_supervisor() %}
+                            <input type="number" name="arv_treatment" value="0" class="form-control form-control-sm text-end">
+                            {% else %}
+                            0
+                            {% endif %}
+                        </td></tr>
+                        <tr><td>34 Number of pregnant women receiving VCT and serostatus results</td><td class="text-end">
+                            {% if current_user.is_supervisor() %}
+                            <input type="number" name="vct_pregnant" value="0" class="form-control form-control-sm text-end">
+                            {% else %}
+                            0
+                            {% endif %}
+                        </td></tr>
+                        <tr><td>35 Number of pregnant women tested HIV positive</td><td class="text-end">
+                            {% if current_user.is_supervisor() %}
+                            <input type="number" name="hiv_positive_pregnant" value="0" class="form-control form-control-sm text-end">
+                            {% else %}
+                            0
+                            {% endif %}
+                        </td></tr>
+                        <tr><td>36 Number of HIV positive women treated for PMTCT</td><td class="text-end">
+                            {% if current_user.is_supervisor() %}
+                            <input type="number" name="pmtct" value="0" class="form-control form-control-sm text-end">
+                            {% else %}
+                            0
+                            {% endif %}
+                        </td></tr>
+                        <tr><td>62 Total number of children attending under - five clinic</td><td class="text-end">
+                            {% if current_user.is_supervisor() %}
+                            <input type="number" name="under_five_clinic" value="0" class="form-control form-control-sm text-end">
+                            {% else %}
+                            0
+                            {% endif %}
+                        </td></tr>
+                        <tr><td>108 Number of OPD attendance</td><td class="text-end">{{ d.opd_total }}</td></tr>
+                    </tbody>
+                </table>
+                <h5>Tuberculosis</h5>
+                <table class="table table-bordered">
+                    <tbody>
+                        <tr><td>65 Number of confirmed TB new cases</td><td class="text-end">
+                            {% if current_user.is_supervisor() %}
+                            <input type="number" name="tb_new_cases" value="0" class="form-control form-control-sm text-end">
+                            {% else %}
+                            0
+                            {% endif %}
+                        </td></tr>
+                        <tr><td>66 Num of smear negative and extra-pulmonary cases completed treatment</td><td class="text-end">
+                            {% if current_user.is_supervisor() %}
+                            <input type="number" name="tb_completed_treatment" value="0" class="form-control form-control-sm text-end">
+                            {% else %}
+                            0
+                            {% endif %}
+                        </td></tr>
+                        <tr><td>67 Num of new smear sputum positive cases proved smear -ve at the end of treatment</td><td class="text-end">
+                            {% if current_user.is_supervisor() %}
+                            <input type="number" name="tb_smear_negative" value="0" class="form-control form-control-sm text-end">
+                            {% else %}
+                            0
+                            {% endif %}
+                        </td></tr>
+                    </tbody>
+                </table>
+                <h5>New Cases (OPD plus inpatient)</h5>
+                <table class="table table-bordered">
+                    <tbody>
+                        <tr><td>69 Malaria - new cases (under 5)</td><td class="text-end">{{ d.malaria_u5 }}</td></tr>
+                        <tr><td>70 Malaria - new cases (5 & over)</td><td class="text-end">{{ d.malaria_o5 }}</td></tr>
+                        <tr><td>Pneumonia - new cases</td><td class="text-end">{{ d.pneumonia_count }}</td></tr>
+                        <tr><td>Hypertension - new cases</td><td class="text-end">{{ d.hypertension_count }}</td></tr>
+                        <tr><td>Diabetes - new cases</td><td class="text-end">{{ d.diabetes_count }}</td></tr>
+                        <tr><td>Diarrhea - new cases</td><td class="text-end">{{ d.diarrhea_count }}</td></tr>
+                        <tr><td>UTI - new cases</td><td class="text-end">{{ d.uti_count }}</td></tr>
+                        <tr><td>Polio - new cases</td><td class="text-end">{{ d.polio_count }}</td></tr>
+                        <tr><td>Measles - new cases</td><td class="text-end">{{ d.measles_count }}</td></tr>
+                        <tr><td>HIV/AIDS - new cases</td><td class="text-end">{{ d.hiv_count }}</td></tr>
+                        <tr><td>TB - new cases</td><td class="text-end">{{ d.tb_count }}</td></tr>
+                        <tr><td>Asthma - new cases</td><td class="text-end">{{ d.asthma_count }}</td></tr>
+                        <tr><td>Stroke - new cases</td><td class="text-end">{{ d.stroke_count }}</td></tr>
+                        <tr><td>Other conditions</td><td class="text-end">
+                            {% if current_user.is_supervisor() %}
+                            <input type="number" name="other_conditions" value="0" class="form-control form-control-sm text-end">
+                            {% else %}
+                            0
+                            {% endif %}
+                        </td></tr>
+                    </tbody>
+                </table>
+                {% if current_user.is_supervisor() %}
+                <div class="mt-3">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-save"></i> Save Changes
+                    </button>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </main>
+    <script>
+    function exportToExcel() {
+        // Create a form and submit it to trigger download
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '/reports/hmis15/export';
+        form.style.display = 'none';
+        const monthInput = document.createElement('input');
+        monthInput.type = 'hidden';
+        monthInput.name = 'month';
+        monthInput.value = '{{ d.month }}';
+        form.appendChild(monthInput);
+        document.body.appendChild(form);
+        form.submit();
+        document.body.removeChild(form);
+    }
+    </script>
+</body>
+</html>

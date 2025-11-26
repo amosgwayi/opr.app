@@ -1,0 +1,520 @@
+{% extends "base.html" %}
+{% block title %}Dashboard - Ministry of Health OPD System{% endblock %}
+{% block content %}
+
+<style>
+    body {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        background-color: #f8fafc;
+    }
+    
+    .stat-card {
+        background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+        border-radius: 16px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        border: none;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        height: 100%;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .stat-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, var(--accent-color), var(--accent-light));
+    }
+    
+    .stat-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    }
+    
+    .stat-card.primary { 
+        --accent-color: #3b82f6; 
+        --accent-light: #60a5fa;
+    }
+    .stat-card.success { 
+        --accent-color: #10b981; 
+        --accent-light: #34d399;
+    }
+    .stat-card.info { 
+        --accent-color: #06b6d4; 
+        --accent-light: #22d3ee;
+    }
+    .stat-card.warning { 
+        --accent-color: #f59e0b; 
+        --accent-light: #fbbf24;
+    }
+    
+    .stat-number {
+        font-size: 2.5rem;
+        font-weight: 700;
+        background: linear-gradient(135deg, var(--accent-color), var(--accent-light));
+        background-clip: text;
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin: 0.75rem 0 0.5rem 0;
+        line-height: 1;
+    }
+    
+    .stat-label {
+        font-size: 0.75rem;
+        color: #6b7280;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-bottom: 0.25rem;
+    }
+    
+    .stat-icon {
+        font-size: 2rem;
+        background: linear-gradient(135deg, var(--accent-color), var(--accent-light));
+        background-clip: text;
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        opacity: 0.8;
+    }
+    
+    .stat-card .card-body {
+        padding: 1.75rem 1.5rem;
+        position: relative;
+    }
+    
+    .chart-container {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        border: 1px solid #e2e8f0;
+        padding: 1.5rem;
+        height: 350px;
+    }
+    
+    .chart-title {
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: #1e293b;
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .activity-panel {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        border: 1px solid #e2e8f0;
+        padding: 1.5rem;
+        height: 350px;
+        overflow-y: auto;
+    }
+    
+    .activity-item {
+        padding: 1rem 0;
+        border-bottom: 1px solid #f1f5f9;
+    }
+    
+    .activity-item:last-child {
+        border-bottom: none;
+    }
+    
+    .activity-title {
+        font-weight: 500;
+        color: #1e293b;
+        margin-bottom: 0.25rem;
+    }
+    
+    .activity-meta {
+        font-size: 0.875rem;
+        color: #64748b;
+    }
+    
+    .no-data {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 200px;
+        color: #64748b;
+        font-size: 0.875rem;
+    }
+    
+    .quick-actions {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        border: 1px solid #e2e8f0;
+    }
+    
+    .btn-action {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.75rem 1.5rem;
+        border-radius: 8px;
+        font-weight: 500;
+        text-decoration: none;
+        transition: all 0.2s ease;
+    }
+    
+    .btn-primary {
+        background-color: #3b82f6;
+        color: white;
+        border: 1px solid #3b82f6;
+    }
+    
+    .btn-primary:hover {
+        background-color: #2563eb;
+        color: white;
+    }
+    
+    .btn-outline {
+        background-color: transparent;
+        color: #64748b;
+        border: 1px solid #d1d5db;
+    }
+    
+    .btn-outline:hover {
+        background-color: #f8fafc;
+        color: #374151;
+    }
+</style>
+
+<!-- Stats Cards -->
+<div class="row g-4 mb-4">
+    <div class="col-xl-3 col-md-6">
+        <div class="stat-card primary">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div class="flex-grow-1">
+                        <div class="stat-label">Total Visits</div>
+                        <div class="stat-number" id="totalVisits">{{ total_visits if total_visits else 0 }}</div>
+                        <div class="text-muted small">All time records</div>
+                    </div>
+                    <div class="ms-3">
+                        <i class="bi bi-people stat-icon"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-xl-3 col-md-6">
+        <div class="stat-card success">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div class="flex-grow-1">
+                        <div class="stat-label">Today's Visits</div>
+                        <div class="stat-number" id="todayVisits">{{ today_visits if today_visits else 0 }}</div>
+                        <div class="text-muted small">{{ "Today" | strftime('%B %d, %Y') if today_visits else "No visits today" }}</div>
+                    </div>
+                    <div class="ms-3">
+                        <i class="bi bi-calendar-check stat-icon"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-xl-3 col-md-6">
+        <div class="stat-card info">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div class="flex-grow-1">
+                        <div class="stat-label">Top Department</div>
+                        <div class="stat-number" style="font-size: 1.5rem;">
+                            {% if by_department and by_department|length > 0 %}
+                                {{ by_department[0][0] }}
+                            {% else %}
+                                N/A
+                            {% endif %}
+                        </div>
+                        <div class="text-muted small">
+                            {% if by_department and by_department|length > 0 %}
+                                {{ by_department[0][1] }} visits
+                            {% else %}
+                                No data available
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="ms-3">
+                        <i class="bi bi-hospital stat-icon"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-xl-3 col-md-6">
+        <div class="stat-card warning">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div class="flex-grow-1">
+                        <div class="stat-label">Current User</div>
+                        <div class="stat-number" style="font-size: 1.5rem;">{{ current_user.username if current_user else 'Guest' }}</div>
+                        <div class="text-muted small">
+                            {% if current_user and current_user.is_admin() %}
+                                Administrator
+                            {% elif current_user %}
+                                Staff Member
+                            {% else %}
+                                Not logged in
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="ms-3">
+                        <i class="bi bi-person-badge stat-icon"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Row -->
+<div class="row g-4 mb-4">
+    <div class="col-xl-8">
+        <div class="chart-container">
+            <h5 class="chart-title">
+                <i class="bi bi-bar-chart"></i>
+                Visits by Department
+            </h5>
+            {% if by_department and by_department|length > 0 %}
+                <canvas id="departmentChart"></canvas>
+            {% else %}
+                <div class="no-data">
+                    <i class="bi bi-exclamation-circle mb-2"></i>
+                    No department data available
+                </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <div class="col-xl-4">
+        <div class="chart-container">
+            <h5 class="chart-title">
+                <i class="bi bi-pie-chart"></i>
+                Gender Distribution
+            </h5>
+            {% if by_sex and by_sex|length > 0 %}
+                <canvas id="genderChart"></canvas>
+            {% else %}
+                <div class="no-data">
+                    <i class="bi bi-exclamation-circle mb-2"></i>
+                    No gender data available
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Trend and Activity Row -->
+<div class="row g-4 mb-4">
+    <div class="col-xl-8">
+        <div class="chart-container">
+            <h5 class="chart-title">
+                <i class="bi bi-graph-up"></i>
+                7-Day Visits Trend
+            </h5>
+            {% if visits_data and visits_data|length > 0 %}
+                <canvas id="trendChart"></canvas>
+            {% else %}
+                <div class="no-data">
+                    <i class="bi bi-exclamation-circle mb-2"></i>
+                    No trend data available
+                </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <div class="col-xl-4">
+        <div class="activity-panel">
+            <h5 class="chart-title">
+                <i class="bi bi-activity"></i>
+                Recent Activity
+            </h5>
+            {% if by_department and by_department|length > 0 %}
+                {% for dept in by_department[:5] %}
+                <div class="activity-item">
+                    <div class="activity-title">{{ dept[0] }}</div>
+                    <div class="activity-meta">{{ dept[1] }} visits • Updated today</div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="no-data">
+                    <i class="bi bi-exclamation-circle mb-2"></i>
+                    No activity data available
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="row">
+    <div class="col-12">
+        <div class="quick-actions">
+            <div class="card-body">
+                <h5 class="chart-title mb-3">
+                    <i class="bi bi-lightning"></i>
+                    Quick Actions
+                </h5>
+                <div class="d-flex flex-wrap gap-3">
+                    <a href="/opd" class="btn-action btn-primary">
+                        <i class="bi bi-plus-circle"></i>
+                        Record New Visit
+                    </a>
+                    <a href="/opd/view" class="btn-action btn-outline">
+                        <i class="bi bi-search"></i>
+                        View All Records
+                    </a>
+                    <a href="/reports" class="btn-action btn-outline">
+                        <i class="bi bi-bar-chart-line"></i>
+                        Generate Reports
+                    </a>
+                    {% if current_user.is_admin() %}
+                    <a href="/admin/users" class="btn-action btn-outline">
+                        <i class="bi bi-people"></i>
+                        Manage Users
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// Animated counters
+function animateCounter(elementId, target) {
+    const element = document.getElementById(elementId);
+    if (!element) return;
+    
+    let current = 0;
+    const duration = 1200;
+    const increment = target / (duration / 16);
+    
+    const timer = setInterval(() => {
+        current += increment;
+        if (current >= target) {
+            clearInterval(timer);
+            current = target;
+        }
+        element.textContent = Math.floor(current);
+    }, 16);
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    animateCounter('totalVisits', {{ total_visits if total_visits else 0 }});
+    animateCounter('todayVisits', {{ today_visits if today_visits else 0 }});
+});
+
+// Chart data
+{% if by_department and by_department|length > 0 %}
+const deptLabels = {{ by_department|map(attribute=0)|list|tojson }};
+const deptData = {{ by_department|map(attribute=1)|list|tojson }};
+{% endif %}
+
+{% if by_sex and by_sex|length > 0 %}
+const genderLabels = {{ by_sex|map(attribute=0)|list|tojson }};
+const genderData = {{ by_sex|map(attribute=1)|list|tojson }};
+{% endif %}
+
+{% if visits_data and visits_data|length > 0 %}
+const last7Days = {{ last_7_days|tojson }};
+const visitsData = {{ visits_data|tojson }};
+{% endif %}
+
+// Chart configurations
+const chartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+        legend: { display: false },
+        tooltip: {
+            backgroundColor: 'rgba(0,0,0,0.8)',
+            padding: 12,
+            cornerRadius: 8
+        }
+    }
+};
+
+// Department Chart
+{% if by_department and by_department|length > 0 %}
+new Chart(document.getElementById('departmentChart'), {
+    type: 'bar',
+    data: {
+        labels: deptLabels,
+        datasets: [{
+            data: deptData,
+            backgroundColor: '#3b82f6',
+            borderRadius: 4,
+            borderSkipped: false
+        }]
+    },
+    options: {
+        ...chartOptions,
+        scales: {
+            y: { beginAtZero: true, ticks: { precision: 0 } },
+            x: { grid: { display: false } }
+        }
+    }
+});
+{% endif %}
+
+// Gender Chart
+{% if by_sex and by_sex|length > 0 %}
+new Chart(document.getElementById('genderChart'), {
+    type: 'doughnut',
+    data: {
+        labels: genderLabels,
+        datasets: [{
+            data: genderData,
+            backgroundColor: ['#3b82f6', '#10b981', '#f59e0b'],
+            borderWidth: 2,
+            borderColor: '#fff'
+        }]
+    },
+    options: {
+        ...chartOptions,
+        plugins: {
+            ...chartOptions.plugins,
+            legend: { display: true, position: 'bottom' }
+        }
+    }
+});
+{% endif %}
+
+// Trend Chart
+{% if visits_data and visits_data|length > 0 %}
+new Chart(document.getElementById('trendChart'), {
+    type: 'line',
+    data: {
+        labels: last7Days,
+        datasets: [{
+            data: visitsData,
+            borderColor: '#3b82f6',
+            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+            borderWidth: 2,
+            pointRadius: 4,
+            fill: true,
+            tension: 0.3
+        }]
+    },
+    options: {
+        ...chartOptions,
+        scales: {
+            y: { beginAtZero: true, ticks: { precision: 0 } }
+        }
+    }
+});
+{% endif %}
+</script>
+
+{% endblock %}

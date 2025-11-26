@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Malaria Health Facility Monthly Report</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        .w-150 { width: 150px; }
+        .editable-cell { background-color: #f8f9fa; cursor: pointer; }
+        .editable-cell:hover { background-color: #e9ecef; }
+    </style>
+</head>
+<body class="bg-light">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="/dashboard"><i class="bi bi-hospital me-2"></i>OPD System</a>
+            <div class="d-flex gap-2">
+                <a class="btn btn-outline-light btn-sm" href="/reports"><i class="bi bi-graph-up"></i> Reports</a>
+                <a class="btn btn-outline-light btn-sm" href="/logout"><i class="bi bi-box-arrow-right"></i> Logout</a>
+            </div>
+        </div>
+    </nav>
+    <main class="container py-4">
+        <div class="card shadow-sm mb-3">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h4 class="mb-0">MALARIA HEALTH FACILITY MONTHLY REPORT</h4>
+                    <div class="btn-group">
+                        <button class="btn btn-outline-primary" onclick="window.print()">
+                            <i class="bi bi-printer"></i> Print
+                        </button>
+                        <button class="btn btn-outline-success" onclick="exportToExcel()">
+                            <i class="bi bi-file-earmark-excel"></i> Export Excel
+                        </button>
+                    </div>
+                </div>
+                <form class="row g-2" method="get">
+                    <div class="col-auto"><label class="col-form-label">Month</label></div>
+                    <div class="col-auto"><input type="month" class="form-control" name="month" value="{{ d.month }}"></div>
+                    <div class="col-auto"><button class="btn btn-primary" type="submit"><i class="bi bi-funnel"></i> Filter</button></div>
+                </form>
+            </div>
+        </div>
+        <div class="card shadow-sm mb-4">
+            <div class="card-body">
+                <h5>Out Patient Department</h5>
+                <form id="malariaForm" method="POST">
+                    <table class="table table-bordered align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="w-150">Out Patient Numbers</th>
+                                <th class="text-center"><5 Yrs</th>
+                                <th class="text-center">>5 Yrs</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>A: Confirmed (Co) Malaria Cases</td>
+                                <td class="text-center">
+                                    {% if current_user.is_supervisor() %}
+                                    <input type="number" name="A_u5" value="{{ d.A_u5 }}" class="form-control form-control-sm text-center">
+                                    {% else %}
+                                    {{ d.A_u5 }}
+                                    {% endif %}
+                                </td>
+                                <td class="text-center">
+                                    {% if current_user.is_supervisor() %}
+                                    <input type="number" name="A_o5" value="{{ d.A_o5 }}" class="form-control form-control-sm text-center">
+                                    {% else %}
+                                    {{ d.A_o5 }}
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>B: Presumed (Pr) Malaria Cases (Clinically Diagnosed )</td>
+                                <td class="text-center">
+                                    {% if current_user.is_supervisor() %}
+                                    <input type="number" name="B_u5" value="{{ d.B_u5 }}" class="form-control form-control-sm text-center">
+                                    {% else %}
+                                    {{ d.B_u5 }}
+                                    {% endif %}
+                                </td>
+                                <td class="text-center">
+                                    {% if current_user.is_supervisor() %}
+                                    <input type="number" name="B_o5" value="{{ d.B_o5 }}" class="form-control form-control-sm text-center">
+                                    {% else %}
+                                    {{ d.B_o5 }}
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>C: Confirmed malaria in pregnant woman (c)</td>
+                                <td class="text-center">
+                                    {% if current_user.is_supervisor() %}
+                                    <input type="number" name="C_preg" value="{{ d.C_preg }}" class="form-control form-control-sm text-center">
+                                    {% else %}
+                                    {{ d.C_preg }}
+                                    {% endif %}
+                                </td>
+                                <td class="text-center">&nbsp;</td>
+                            </tr>
+                            <tr>
+                                <td>D: Presumed (clinically diagnosed) malaria in pregnant woman (d)</td>
+                                <td class="text-center">
+                                    {% if current_user.is_supervisor() %}
+                                    <input type="number" name="D_preg" value="{{ d.D_preg }}" class="form-control form-control-sm text-center">
+                                    {% else %}
+                                    {{ d.D_preg }}
+                                    {% endif %}
+                                </td>
+                                <td class="text-center">&nbsp;</td>
+                            </tr>
+                            <tr class="table-secondary">
+                                <td>Total OPD Malaria Cases (A+B+C+D)</td>
+                                <td class="text-center">{{ d.E_u5 }}</td>
+                                <td class="text-center">{{ d.E_o5 }}</td>
+                            </tr>
+                            <tr>
+                                <td>F: Total OPD Attendance: All causes (Including malaria cases)</td>
+                                <td class="text-center">{{ d.F_u5 }}</td>
+                                <td class="text-center">{{ d.F_o5 }}</td>
+                            </tr>
+                            <tr>
+                                <td>G: Confirmed malaria treatment failure (tf)</td>
+                                <td class="text-center">
+                                    {% if current_user.is_supervisor() %}
+                                    <input type="number" name="G_u5" value="{{ d.G_u5 }}" class="form-control form-control-sm text-center">
+                                    {% else %}
+                                    {{ d.G_u5 }}
+                                    {% endif %}
+                                </td>
+                                <td class="text-center">
+                                    {% if current_user.is_supervisor() %}
+                                    <input type="number" name="G_o5" value="{{ d.G_o5 }}" class="form-control form-control-sm text-center">
+                                    {% else %}
+                                    {{ d.G_o5 }}
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <h6 class="mt-4">Treatment in OPD</h6>
+                    <table class="table table-bordered align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="w-150"></th>
+                                <th class="text-center"><5 Yrs</th>
+                                <th class="text-center">>5 Yrs</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>H: Confirmed cases receiving first-line anti malarial medication (LA)</td>
+                                <td class="text-center">
+                                    {% if current_user.is_supervisor() %}
+                                    <input type="number" name="H_u5" value="{{ d.H_u5 }}" class="form-control form-control-sm text-center">
+                                    {% else %}
+                                    {{ d.H_u5 }}
+                                    {% endif %}
+                                </td>
+                                <td class="text-center">
+                                    {% if current_user.is_supervisor() %}
+                                    <input type="number" name="H_o5" value="{{ d.H_o5 }}" class="form-control form-control-sm text-center">
+                                    {% else %}
+                                    {{ d.H_o5 }}
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>I: Presumed malaria cases receiving first-line anti malarial medication(LA)</td>
+                                <td class="text-center">
+                                    {% if current_user.is_supervisor() %}
+                                    <input type="number" name="I_u5" value="{{ d.I_u5 }}" class="form-control form-control-sm text-center">
+                                    {% else %}
+                                    {{ d.I_u5 }}
+                                    {% endif %}
+                                </td>
+                                <td class="text-center">
+                                    {% if current_user.is_supervisor() %}
+                                    <input type="number" name="I_o5" value="{{ d.I_o5 }}" class="form-control form-control-sm text-center">
+                                    {% else %}
+                                    {{ d.I_o5 }}
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>J: Confirmed cases receiving second-line anti malarial medication (ASAQ)</td>
+                                <td class="text-center">
+                                    {% if current_user.is_supervisor() %}
+                                    <input type="number" name="J_u5" value="{{ d.J_u5 }}" class="form-control form-control-sm text-center">
+                                    {% else %}
+                                    {{ d.J_u5 }}
+                                    {% endif %}
+                                </td>
+                                <td class="text-center">
+                                    {% if current_user.is_supervisor() %}
+                                    <input type="number" name="J_o5" value="{{ d.J_o5 }}" class="form-control form-control-sm text-center">
+                                    {% else %}
+                                    {{ d.J_o5 }}
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>K: Presumed malaria cases receiving second-line anti malarial medication(ASAQ)</td>
+                                <td class="text-center">
+                                    {% if current_user.is_supervisor() %}
+                                    <input type="number" name="K_u5" value="{{ d.K_u5 }}" class="form-control form-control-sm text-center">
+                                    {% else %}
+                                    {{ d.K_u5 }}
+                                    {% endif %}
+                                </td>
+                                <td class="text-center">
+                                    {% if current_user.is_supervisor() %}
+                                    <input type="number" name="K_o5" value="{{ d.K_o5 }}" class="form-control form-control-sm text-center">
+                                    {% else %}
+                                    {{ d.K_o5 }}
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <h6 class="mt-4">Lab/mRDT in OPD</h6>
+                    <table class="table table-bordered align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="w-150"></th>
+                                <th class="text-center"><5 Yrs</th>
+                                <th class="text-center">>5 Yrs</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>L: Suspected malaria cases tested (mRDT)</td>
+                                <td class="text-center">
+                                    {% if current_user.is_supervisor() %}
+                                    <input type="number" name="L_u5" value="{{ d.L_u5 }}" class="form-control form-control-sm text-center">
+                                    {% else %}
+                                    {{ d.L_u5 }}
+                                    {% endif %}
+                                </td>
+                                <td class="text-center">
+                                    {% if current_user.is_supervisor() %}
+                                    <input type="number" name="L_o5" value="{{ d.L_o5 }}" class="form-control form-control-sm text-center">
+                                    {% else %}
+                                    {{ d.L_o5 }}
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>M: Positive malaria cases (mRDT)</td>
+                                <td class="text-center">
+                                    {% if current_user.is_supervisor() %}
+                                    <input type="number" name="M_u5" value="{{ d.M_u5 }}" class="form-control form-control-sm text-center">
+                                    {% else %}
+                                    {{ d.M_u5 }}
+                                    {% endif %}
+                                </td>
+                                <td class="text-center">
+                                    {% if current_user.is_supervisor() %}
+                                    <input type="number" name="M_o5" value="{{ d.M_o5 }}" class="form-control form-control-sm text-center">
+                                    {% else %}
+                                    {{ d.M_o5 }}
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>N: Suspected malaria cases tested (microscopy)</td>
+                                <td class="text-center">
+                                    {% if current_user.is_supervisor() %}
+                                    <input type="number" name="N_u5" value="{{ d.N_u5 }}" class="form-control form-control-sm text-center">
+                                    {% else %}
+                                    {{ d.N_u5 }}
+                                    {% endif %}
+                                </td>
+                                <td class="text-center">
+                                    {% if current_user.is_supervisor() %}
+                                    <input type="number" name="N_o5" value="{{ d.N_o5 }}" class="form-control form-control-sm text-center">
+                                    {% else %}
+                                    {{ d.N_o5 }}
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>O: Positive malaria cases (microscopy)</td>
+                                <td class="text-center">
+                                    {% if current_user.is_supervisor() %}
+                                    <input type="number" name="O_u5" value="{{ d.O_u5 }}" class="form-control form-control-sm text-center">
+                                    {% else %}
+                                    {{ d.O_u5 }}
+                                    {% endif %}
+                                </td>
+                                <td class="text-center">
+                                    {% if current_user.is_supervisor() %}
+                                    <input type="number" name="O_o5" value="{{ d.O_o5 }}" class="form-control form-control-sm text-center">
+                                    {% else %}
+                                    {{ d.O_o5 }}
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            <tr class="table-secondary">
+                                <td>Total suspected malaria cases (B+D+L+N)</td>
+                                <td class="text-center">{{ d.P_u5 }}</td>
+                                <td class="text-center">{{ d.P_o5 }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    {% if current_user.is_supervisor() %}
+                    <div class="mt-3">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-save"></i> Save Changes
+                        </button>
+                    </div>
+                    {% endif %}
+                </form>
+            </div>
+        </div>
+        <div class="card shadow-sm mb-4">
+            <div class="card-body">
+                <h5>In Patient Department</h5>
+                <table class="table table-bordered align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="w-150">In Patient Numbers</th>
+                            <th class="text-center"><5 Yrs</th>
+                            <th class="text-center">>5 Yrs</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Q: Total suspected malaria cases tested (microscopy)</td>
+                            <td class="text-center">{{ d.Q_u5 }}</td>
+                            <td class="text-center">{{ d.Q_o5 }}</td>
+                        </tr>
+                        <tr>
+                            <td>R: Confirmed malaria cases (microscopy)</td>
+                            <td class="text-center">{{ d.R_u5 }}</td>
+                            <td class="text-center">{{ d.R_o5 }}</td>
+                        </tr>
+                        <tr>
+                            <td>S: Presumed malaria cases (clinically diagnosed without test )</td>
+                            <td class="text-center">{{ d.S_u5 }}</td>
+                            <td class="text-center">{{ d.S_o5 }}</td>
+                        </tr>
+                        <tr>
+                            <td>T: Confirmed malaria in pregnant woman (c)</td>
+                            <td class="text-center">{{ d.T_preg }}</td>
+                            <td class="text-center">&nbsp;</td>
+                        </tr>
+                        <tr>
+                            <td>U: Presumed (clinically diagnosed) malaria in pregnant woman (d)</td>
+                            <td class="text-center">{{ d.U_u5 }}</td>
+                            <td class="text-center">{{ d.U_o5 }}</td>
+                        </tr>
+                        <tr class="table-secondary">
+                            <td>V: Total suspected malaria cases (Q+S+U)</td>
+                            <td class="text-center">{{ d.V_u5 }}</td>
+                            <td class="text-center">{{ d.V_o5 }}</td>
+                        </tr>
+                        <tr class="table-secondary">
+                            <td>W: Total malaria cases (R+S+T+U)</td>
+                            <td class="text-center">{{ d.W_u5 }}</td>
+                            <td class="text-center">{{ d.W_o5 }}</td>
+                        </tr>
+                        <tr>
+                            <td>X: Confirmed malaria treatment failure (tf)</td>
+                            <td class="text-center">{{ d.X_u5 }}</td>
+                            <td class="text-center">{{ d.X_o5 }}</td>
+                        </tr>
+                        <tr>
+                            <td>Y: Total inpatient malaria deaths</td>
+                            <td class="text-center">{{ d.Y_u5 }}</td>
+                            <td class="text-center">{{ d.Y_o5 }}</td>
+                        </tr>
+                        <tr>
+                            <td>Z: Total Inpatient: all causes</td>
+                            <td class="text-center">{{ d.Z_u5 }}</td>
+                            <td class="text-center">{{ d.Z_o5 }}</td>
+                        </tr>
+                        <tr>
+                            <td>ZA: Total Inpatient Deaths: all causes</td>
+                            <td class="text-center">{{ d.ZA_u5 }}</td>
+                            <td class="text-center">{{ d.ZA_o5 }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h5>Commodities Used</h5>
+                <table class="table table-bordered align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Item</th>
+                            <th>Unit of Issue</th>
+                            <th class="text-end">Quantity Dispensed/Used</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>LA 1X6</td>
+                            <td>tab</td>
+                            <td class="text-end">
+                                {% if current_user.is_supervisor() %}
+                                <input type="number" name="LA_1X6" value="{{ d.commodities['LA 1X6'] }}" class="form-control form-control-sm text-end">
+                                {% else %}
+                                {{ d.commodities['LA 1X6'] }}
+                                {% endif %}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>LA 2X6</td>
+                            <td>tab</td>
+                            <td class="text-end">
+                                {% if current_user.is_supervisor() %}
+                                <input type="number" name="LA_2X6" value="{{ d.commodities['LA 2X6'] }}" class="form-control form-control-sm text-end">
+                                {% else %}
+                                {{ d.commodities['LA 2X6'] }}
+                                {% endif %}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>LA 3X6</td>
+                            <td>tab</td>
+                            <td class="text-end">
+                                {% if current_user.is_supervisor() %}
+                                <input type="number" name="LA_3X6" value="{{ d.commodities['LA 3X6'] }}" class="form-control form-control-sm text-end">
+                                {% else %}
+                                {{ d.commodities['LA 3X6'] }}
+                                {% endif %}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>LA 4X6</td>
+                            <td>tab</td>
+                            <td class="text-end">
+                                {% if current_user.is_supervisor() %}
+                                <input type="number" name="LA_4X6" value="{{ d.commodities['LA 4X6'] }}" class="form-control form-control-sm text-end">
+                                {% else %}
+                                {{ d.commodities['LA 4X6'] }}
+                                {% endif %}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>ITN Distributed to Pregnant women</td>
+                            <td>net</td>
+                            <td class="text-end">
+                                {% if current_user.is_supervisor() %}
+                                <input type="number" name="ITN_Pregnant" value="{{ d.commodities['ITN Distributed to Pregnant women'] }}" class="form-control form-control-sm text-end">
+                                {% else %}
+                                {{ d.commodities['ITN Distributed to Pregnant women'] }}
+                                {% endif %}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>ITN Distributed to Newborn babies</td>
+                            <td>net</td>
+                            <td class="text-end">
+                                {% if current_user.is_supervisor() %}
+                                <input type="number" name="ITN_Newborn" value="{{ d.commodities['ITN Distributed to Newborn babies'] }}" class="form-control form-control-sm text-end">
+                                {% else %}
+                                {{ d.commodities['ITN Distributed to Newborn babies'] }}
+                                {% endif %}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>SP</td>
+                            <td>tab</td>
+                            <td class="text-end">
+                                {% if current_user.is_supervisor() %}
+                                <input type="number" name="SP" value="{{ d.commodities['SP'] }}" class="form-control form-control-sm text-end">
+                                {% else %}
+                                {{ d.commodities['SP'] }}
+                                {% endif %}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>RDTs</td>
+                            <td>test</td>
+                            <td class="text-end">
+                                {% if current_user.is_supervisor() %}
+                                <input type="number" name="RDTs" value="{{ d.commodities['RDTs'] }}" class="form-control form-control-sm text-end">
+                                {% else %}
+                                {{ d.commodities['RDTs'] }}
+                                {% endif %}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>ASAQ 25mg/67.5mg (3 tablets)</td>
+                            <td>tab</td>
+                            <td class="text-end">
+                                {% if current_user.is_supervisor() %}
+                                <input type="number" name="ASAQ_25mg" value="{{ d.commodities['ASAQ 25mg/67.5mg (3 tablets)'] }}" class="form-control form-control-sm text-end">
+                                {% else %}
+                                {{ d.commodities['ASAQ 25mg/67.5mg (3 tablets)'] }}
+                                {% endif %}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>ASAQ 50mg/135mg (3 tablets)</td>
+                            <td>tab</td>
+                            <td class="text-end">
+                                {% if current_user.is_supervisor() %}
+                                <input type="number" name="ASAQ_50mg" value="{{ d.commodities['ASAQ 50mg/135mg (3 tablets)'] }}" class="form-control form-control-sm text-end">
+                                {% else %}
+                                {{ d.commodities['ASAQ 50mg/135mg (3 tablets)'] }}
+                                {% endif %}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>ASAQ 100mg/270mg (3 tablets)</td>
+                            <td>tab</td>
+                            <td class="text-end">
+                                {% if current_user.is_supervisor() %}
+                                <input type="number" name="ASAQ_100mg_3tab" value="{{ d.commodities['ASAQ 100mg/270mg (3 tablets)'] }}" class="form-control form-control-sm text-end">
+                                {% else %}
+                                {{ d.commodities['ASAQ 100mg/270mg (3 tablets)'] }}
+                                {% endif %}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>ASAQ 100mg/270mg (6 tablets)</td>
+                            <td>tab</td>
+                            <td class="text-end">
+                                {% if current_user.is_supervisor() %}
+                                <input type="number" name="ASAQ_100mg_6tab" value="{{ d.commodities['ASAQ 100mg/270mg (6 tablets)'] }}" class="form-control form-control-sm text-end">
+                                {% else %}
+                                {{ d.commodities['ASAQ 100mg/270mg (6 tablets)'] }}
+                                {% endif %}
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+                {% if current_user.is_supervisor() %}
+                <div class="mt-3">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-save"></i> Save Changes
+                    </button>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </main>
+    <script>
+    function exportToExcel() {
+        // Create a form and submit it to trigger download
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '/reports/malaria/export';
+        form.style.display = 'none';
+        const monthInput = document.createElement('input');
+        monthInput.type = 'hidden';
+        monthInput.name = 'month';
+        monthInput.value = '{{ d.month }}';
+        form.appendChild(monthInput);
+        document.body.appendChild(form);
+        form.submit();
+        document.body.removeChild(form);
+    }
+    </script>
+</body>
+</html>

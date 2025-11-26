@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<!-- saved from url=(0012)about:srcdoc -->
+<html lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+            
+            <link type="text/css" rel="stylesheet" media="screen" href="https://dhis2.health.gov.mw/dhis-web-commons/javascripts/jQuery/ui/css/redmond/jquery-ui.css">
+<link type="text/css" rel="stylesheet" media="print" href="https://dhis2.health.gov.mw/dhis-web-commons/css/print.css">
+<link type="text/css" rel="stylesheet" media="screen,print" href="https://dhis2.health.gov.mw/dhis-web-commons/css/themes/light_blue/light_blue.css">
+            <script src="https://dhis2.health.gov.mw/dhis-web-commons/javascripts/jQuery/jquery.min.js" type="text/javascript"></script>
+<script src="https://dhis2.health.gov.mw/dhis-web-commons/javascripts/jQuery/jquery.utils.js" type="text/javascript"></script>
+<script src="https://dhis2.health.gov.mw/dhis-web-commons/javascripts/jQuery/ui/jquery-ui.min.js" type="text/javascript"></script>
+<script src="https://dhis2.health.gov.mw/dhis-web-commons/javascripts/dhis2/dhis2.util.js" type="text/javascript"></script>
+<script src="https://dhis2.health.gov.mw/dhis-web-commons/javascripts/dhis2/dhis2.period.js" type="text/javascript"></script>
+<script src="https://dhis2.health.gov.mw/dhis-web-commons/javascripts/commons.js" type="text/javascript"></script>
+<script src="https://dhis2.health.gov.mw/dhis-web-commons/javascripts/commons.ajax.js" type="text/javascript"></script>
+<script src="https://dhis2.health.gov.mw/dhis-web-commons/javascripts/lists.js" type="text/javascript"></script>
+<script src="https://dhis2.health.gov.mw/dhis-web-commons/javascripts/periodType.js" type="text/javascript"></script>
+<script src="https://dhis2.health.gov.mw/dhis-web-commons/javascripts/date.js" type="text/javascript"></script>
+<script src="https://dhis2.health.gov.mw/dhis-web-commons/oust/oust.js" type="text/javascript"></script>
+            <style type="text/css">
+                
+    html {
+        line-height: 1.15;
+        text-size-adjust: 100%;
+    }
+    body {
+        font-family: Roboto, sans-serif;
+        box-sizing: inherit;
+    }
+    table {
+        margin-top: 16px;
+        border-collapse: collapse;
+    }
+    table td,
+    table th {
+        border: 1px solid #bcbcbc;
+        padding: 4px;
+    }
+
+            </style>
+        </head>
+        <body>
+            <table border="1" bordercolor="#ccc" cellpadding="5" cellspacing="0" style="border-collapse:collapse;" valign="top">
+	<tbody>
+		<tr>
+			<td colspan="3" style="text-align: center;"><strong>Maternity Report Version 3</strong></td>
+		</tr>
+		<tr>
+			<td>
+			<table border="1" cellpadding="0" cellspacing="0" style="background-color:#e6e6fa;border-style:hidden;">
+				<tbody>
+					<tr>
+						<td colspan="3"><span style="font-family:Tahoma,Geneva,sans-serif;"><strong>HIV Test Results</strong></span></td>
+					</tr>
+					<tr>
+						<td><font face="Tahoma, Geneva, sans-serif">1</font></td>
+						<td><span style="font-family:Tahoma,Geneva,sans-serif;">Previous Positive</span></td>
+						<td><span style="font-family:Tahoma,Geneva,sans-serif;"><span class="val" data-de="a3DzFDGAQAi" data-co="Tt7fU5lUhAU">3</span></span></td>
+					</tr>
+					<tr>
+						<td><font face="Tahoma, Geneva, sans-serif">2</font></td>
+						<td><span style="font-family:Tahoma,Geneva,sans-serif;">New Negative</span></td>
+						<td><span style="font-family:Tahoma,Geneva,sans-serif;"><span class="val" data-de="MD0Gp8MzkHf" data-co="Tt7fU5lUhAU">35</span></span></td>
+					</tr>
+					<tr>
+						<td><font face="Tahoma, Geneva, sans-serif">3</font></td>
+						<td><span style="font-family:Tahoma,Geneva,sans-serif;">New Positive</span></td>
+						<td><span style="font-family:Tahoma,Geneva,sans-serif;"><span class="val" data-de="xRrJWogiEMf" data-co="Tt7fU5lUhAU">0</span></span></td>
+					</tr>
+					<tr>
+						<td><font face="Tahoma, Geneva, sans-serif">4</font></td>
+						<td><span style="font-family:Tahoma,Geneva,sans-serif;">Not Done</span></td>
+						<td><span style="font-family:Tahoma,Geneva,sans-serif;"><span class="val" data-de="U3FydV1M1RQ" data-co="Tt7fU5lUhAU">0</span></span></td>
+					</tr>
+					<tr>
+						<td colspan="2" rowspan="1"><span style="font-family:Tahoma,Geneva,sans-serif;">Total Women</span></td>
+						<td><span style="font-family:Tahoma,Geneva,sans-serif;"></span></td>
+					</tr>
+					<tr>
+						<td colspan="2" rowspan="1"><span style="font-family:Tahoma,Geneva,sans-serif;">Total HIV+ve (1+3)</span></td>
+						<td><span style="font-family:Tahoma,Geneva,sans-serif;"></span></td>
+					</tr>
+					<tr>
+						<td colspan="3"><span style="font-family:Tahoma,Geneva,sans-serif;"><strong>ART Mother</strong></span></td>
+					</tr>
+					<tr>
+						<td><font face="Tahoma, Geneva, sans-serif">5</font></td>
+						<td><span style="font-family:Tahoma,Geneva,sans-serif;">Not on ART(incl. HIV -ve)</span></td>
+						<td><span style="font-family:Tahoma,Geneva,sans-serif;"><span class="val" data-de="MoximPvXuj6" data-co="GoX45uTUUCH">34</span></span></td>
+					</tr>
+					<tr>
+						<td><font face="Tahoma, Geneva, sans-serif">6</font></td>
+						<td><span style="font-family:Tahoma,Geneva,sans-serif;">Start Before Pregnancy</span></td>
+						<td><span style="font-family:Tahoma,Geneva,sans-serif;"><span class="val" data-de="MoximPvXuj6" data-co="xmKtsiRYAXz">4</span></span></td>
+					</tr>
+					<tr>
+						<td><font face="Tahoma, Geneva, sans-serif">7</font></td>
+						<td><span style="font-family:Tahoma,Geneva,sans-serif;">Start in 1st or 2nd Trim</span></td>
+						<td><span style="font-family:Tahoma,Geneva,sans-serif;"><span class="val" data-de="MoximPvXuj6" data-co="jMqmEmzruFg">0</span></span></td>
+					</tr>
+					<tr>
+						<td><font face="Tahoma, Geneva, sans-serif">8</font></td>
+						<td><span style="font-family:Tahoma,Geneva,sans-serif;">Start in 3rd Trimester</span></td>
+						<td><span style="font-family:Tahoma,Geneva,sans-serif;"><span class="val" data-de="MoximPvXuj6" data-co="UyOtLy9DhPs">0</span></span></td>
+					</tr>
+					<tr>
+						<td><span style="font-family:Tahoma,Geneva,sans-serif;">9</span></td>
+						<td><span style="font-family:Tahoma,Geneva,sans-serif;">Start during labour</span></td>
+						<td><span style="font-family:Tahoma,Geneva,sans-serif;"><span class="val" data-de="MoximPvXuj6" data-co="hPVDsUM32VS">0</span></span></td>
+					</tr>
+					<tr>
+						<td colspan="2"><span style="font-family:Tahoma,Geneva,sans-serif;">Total Women</span></td>
+						<td>38</td>
+					</tr>
+					<tr>
+						<td colspan="3"><span style="font-family:Tahoma,Geneva,sans-serif;"><strong>Obstetric Complications</strong></span></td>
+					</tr>
+					<tr>
+						<td><span style="font-family:Tahoma,Geneva,sans-serif;">10</span></td>
+						<td><font face="Tahoma, Geneva, sans-serif">None</font></td>
+						<td><span style="font-family:Tahoma,Geneva,sans-serif;"><span class="val" data-de="RS3PtRniRns" data-co="XvMqbLpCTt8">38</span></span></td>
+					</tr>
+					<tr>
+						<td><span style="font-family:Tahoma,Geneva,sans-serif;">11</span></td>
+						<td><span style="font-family:Tahoma,Geneva,sans-serif;">Ante partum. haem</span></td>
+						<td><span style="font-family:Tahoma,Geneva,sans-serif;"><span class="val" data-de="RS3PtRniRns" data-co="DfPxMVfjndd">0</span></span></td>
+					</tr>
+					<tr>
+						<td><span style="font-family:Tahoma,Geneva,sans-serif;">12</span></td>
+						<td><span style="font-family:Tahoma,Geneva,sans-serif;">Post partum. haem</span></td>
+						<td><span style="font-family:Tahoma,Geneva,sans-serif;"><span class="val" data-de="RS3PtRniRns" data-co="ZGX8SK5P435">0</span></span></td>
+					</tr>
+					<tr>
+						<td><span style="font-family:Tahoma,Geneva,sans-serif;">13</span></td>
+						<td><span style="font-family:Tahoma,Geneva,sans-serif;">Obstructed/Prolonged labour</span></td>
+						<td><span style="font-family:Tahoma,Geneva,sans-serif;"><span class="val" data-de="RS3PtRniRns" data-co="Ht1Pz8Kn2k3">1</span></span></td>
+					</tr>
+					<tr>
+						<td><span style="font-family:Tahoma,Geneva,sans-serif;">14</span></td>
+						<td><span style="font-family:Tahoma,Geneva,sans-serif;">Pre/Eclampsia</span></td>
+						<td><span style="font-family:Tahoma,Geneva,sans-serif;"><span class="val" data-de="RS3PtRniRns" data-co="JPgETYeD4qF">0</span></span></td>
+					</tr>
+					<tr>
+						<td><span style="font-family:Tahoma,Geneva,sans-serif;">15</span></td>
+						<td><span style="font-family:Tahoma,Geneva,sans-serif;">Sepsis</span></td>
+						<td><span style="font-family:Tahoma,Geneva,sans-serif;"><span class="val" data-de="RS3PtRniRns" data-co="N6Kp9pEEqSI">0</span></span></td>
+					</tr>
+					<tr>
+						<td><span style="font-family:Tahoma,Geneva,sans-serif;">16</span></td>
+						<td><span style="font-family:Tahoma,Geneva,sans-serif;">Raptured Uterus</span></td>
+						<td><span style="font-family:Tahoma,Geneva,sans-serif;"><span class="val" data-de="RS3PtRniRns" data-co="VrBgkdWJor3">0</span></span></td>
+					</tr>
+					<tr>
+						<td>17</td>
+						<td>Retained Placenta</td>
+						<td><span class="val" data-de="RS3PtRniRns" data-co="qffHiXEve5i">0</span></td>
+					</tr>
+					<tr>
+						<td>18</td>
+						<td>Premature Labour</td>
+						<td><span class="val" data-de="RS3PtRniRns" data-co="ezMtOgig3e6">1</span></td>
+					</tr>
+					<tr>
+						<td>19</td>
+						<td>Foetal Distress</td>
+						<td><span class="val" data-de="RS3PtRniRns" data-co="PEpIz3uFJ4a">2</span></td>
+					</tr>
+					<tr>
+						<td><font face="Tahoma, Geneva, sans-serif">20</font></td>
+						<td><span style="font-family:Tahoma,Geneva,sans-serif;">Others</span></td>
+						<td><span style="font-family:Tahoma,Geneva,sans-serif;"><span class="val" data-de="RS3PtRniRns" data-co="R2qiSvs4zGK">0</span></span></td>
+					</tr>
+					<tr>
+						<td colspan="3"><span style="font-family:Tahoma,Geneva,sans-serif;"><strong>Emergency Obstetric Care</strong></span></td>
+					</tr>
+					<tr>
+						<td><font face="Tahoma, Geneva, sans-serif">21</font></td>
+						<td><span style="font-family:Tahoma,Geneva,sans-serif;">Oxytoxin</span></td>
+						<td><span style="font-family:Tahoma,Geneva,sans-serif;"><span class="val" data-de="FhNg0SdUMe8" data-co="Tt7fU5lUhAU">38</span></span></td>
+					</tr>
+					<tr>
+						<td><span style="font-family:Tahoma,Geneva,sans-serif;">22</span></td>
+						<td><span style="font-family:Tahoma,Geneva,sans-serif;">Anticonvulsive</span></td>
+						<td><span style="font-family:Tahoma,Geneva,sans-serif;"><span class="val" data-de="n7XnfWv0tHo" data-co="Tt7fU5lUhAU">0</span></span></td>
+					</tr>
+					<tr>
+						<td><span style="font-family:Tahoma,Geneva,sans-serif;">23</span></td>
+						<td><span style="font-family:Tahoma,Geneva,sans-serif;">Antibiotics</span></td>
+						<td><span style="font-family:Tahoma,Geneva,sans-serif;"><span class="val" data-de="gXjGJoC7gDs" data-co="Tt7fU5lUhAU">0</span></span></td>
+					</tr>
+					<tr>
+						<td>24</td>
+						<td>Antenatal Corticosteroids</td>
+						<td><span class="val" data-de="b4WuKkuuR0W" data-co="Tt7fU5lUhAU">0</span></td>
+					</tr>
+					<tr>
+						<td><span style="font-family:Tahoma,Geneva,sans-serif;">25</span></td>
+						<td><span style="font-family:Tahoma,Geneva,sans-serif;">Blood Transfusion</span></td>
+						<td><span style="font-family:Tahoma,Geneva,sans-serif;"><span class="val" data-de="vyIPU3KOFF6" data-co="Tt7fU5lUhAU">0</span></span></td>
+					</tr>
+					<tr>
+						<td><span style="font-family:Tahoma,Geneva,sans-serif;">26</span></td>
+						<td><span style="font-family:Tahoma,Geneva,sans-serif;">Manual Removal of Placenta</span></td>
+						<td><span style="font-family:Tahoma,Geneva,sans-serif;"><span class="val" data-de="BbmxEK5AYaL" data-co="Tt7fU5lUhAU">0</span></span></td>
+					</tr>
+					<tr>
+						<td>27</td>
+						<td>Non Pneumatic Anti-Shock Garment</td>
+						<td><span class="val" data-de="Tx8IDGqV3rt" data-co="Tt7fU5lUhAU">0</span></td>
+					</tr>
+					<tr>
+						<td>28</td>
+						<td>Evacuation of Retained Products</td>
+						<td><span class="val" data-de="p1OuCSVe4Gk" data-co="Tt7fU5lUhAU">0</span></td>
+					</tr>
+					<tr>
+						<td colspan="3"><span style="font-family:Tahoma,Geneva,sans-serif;"><strong>Referred Out</strong></span></td>
+					</tr>
+					<tr>
+						<td>&nbsp;</td>
+						<td><em><span style="font-family:Tahoma,Geneva,sans-serif;">No</span></em></td>
+						<td></td>
+					</tr>
+					<tr>
+						<td><span style="font-family:Tahoma,Geneva,sans-serif;">29</span></td>
+						<td><span style="font-family:Tahoma,Geneva,sans-serif;">Yes</span></td>
+						<td><span class="val" data-de="l2GWTPGK4QP" data-co="Tt7fU5lUhAU">1</span></td>
+					</tr>
+				</tbody>
+			</table>
+			</td>
+			<td>
+			<table border="1" cellpadding="0" cellspacing="0" style="background-color:#e6e6fa;border-style:hidden;">
+				<tbody>
+					<tr>
+						<td colspan="3"><span style="font-family:Tahoma,Geneva,sans-serif;"><strong>Staff Conducting Delivery</strong></span></td>
+					</tr>
+					<tr>
+						<td><font face="Tahoma, Geneva, sans-serif">30</font></td>
+						<td><span style="font-family:Tahoma,Geneva,sans-serif;">MD/CO/MA/Nurse/MW</span></td>
+						<td><span style="font-family:Tahoma,Geneva,sans-serif;"><span class="val" data-de="R9CHUW81m9o" data-co="Tt7fU5lUhAU">29</span></span></td>
+					</tr>
+					<tr>
+						<td><font face="Tahoma, Geneva, sans-serif">31</font></td>
+						<td><span style="font-family:Tahoma,Geneva,sans-serif;">PA/WA/HSA</span></td>
+						<td><span style="font-family:Tahoma,Geneva,sans-serif;"><span class="val" data-de="mHcrkMgxARq" data-co="Tt7fU5lUhAU">0</span></span></td>
+					</tr>
+					<tr>
+						<td colspan="3"><span style="font-family:Tahoma,Geneva,sans-serif;"><strong>Vitamin A Given</strong></span></td>
+					</tr>
+					<tr>
+						<td>&nbsp;</td>
+						<td><em><span style="font-family:Tahoma,Geneva,sans-serif;">No</span></em></td>
+						<td></td>
+					</tr>
+					<tr>
+						<td><font face="Tahoma, Geneva, sans-serif">32</font></td>
+						<td><span style="font-family:Tahoma,Geneva,sans-serif;">Yes</span></td>
+						<td><span class="val" data-de="B0MbTYjfUhd" data-co="Tt7fU5lUhAU">0</span></td>
+					</tr>
+					<tr>
+						<td colspan="3"><span style="font-family:Tahoma,Geneva,sans-serif;"><strong>Mother's Status</strong></span></td>
+					</tr>
+					<tr>
+						<td>&nbsp;</td>
+						<td><em><span style="font-family:Tahoma,Geneva,sans-serif;">Mother Alive</span></em></td>
+						<td></td>
+					</tr>
+					<tr>
+						<td>&nbsp;</td>
+						<td><em><span style="font-family:Tahoma,Geneva,sans-serif;">Mother Brought in Dead</span></em></td>
+						<td>&nbsp;</td>
+					</tr>
+					<tr>
+						<td>33</td>
+						<td>Mother Died Before Discharge</td>
+						<td><span class="val" data-de="WjHvEHMCyKo" data-co="Tt7fU5lUhAU">0</span></td>
+					</tr>
+					<tr>
+						<td colspan="3"><span style="font-family:Tahoma,Geneva,sans-serif;"><strong>Twins(All still and live born babies)</strong></span></td>
+					</tr>
+					<tr>
+						<td><span style="font-family:Tahoma,Geneva,sans-serif;">34</span></td>
+						<td><span style="font-family:Tahoma,Geneva,sans-serif;">Singletons</span></td>
+						<td><span style="font-family:Tahoma,Geneva,sans-serif;"><span class="val" data-de="jZ5TP3UpaiQ" data-co="PJEmG4BbHTf">38</span></span></td>
+					</tr>
+					<tr>
+						<td><span style="font-family:Tahoma,Geneva,sans-serif;">35</span></td>
+						<td><span style="font-family:Tahoma,Geneva,sans-serif;">Twins/Triplets</span></td>
+						<td><span style="font-family:Tahoma,Geneva,sans-serif;"><span class="val" data-de="jZ5TP3UpaiQ" data-co="W3Angorx03z">0</span></span></td>
+					</tr>
+					<tr>
+						<td colspan="3"><span style="font-family:Tahoma,Geneva,sans-serif;"><strong>Babies</strong></span></td>
+					</tr>
+					<tr>
+						<td>36</td>
+						<td>Total Number of Babies</td>
+						<td></td>
+					</tr>
+					<tr>
+						<td colspan="3"><span style="font-family:Tahoma,Geneva,sans-serif;"><strong>Delivery Place</strong></span></td>
+					</tr>
+					<tr>
+						<td><span style="font-family:Tahoma,Geneva,sans-serif;">37</span></td>
+						<td><span style="font-family:Tahoma,Geneva,sans-serif;">This Facility</span></td>
+						<td><span style="font-family:Tahoma,Geneva,sans-serif;"><span class="val" data-de="YIP4fvYcGYQ" data-co="Tt7fU5lUhAU">35</span></span></td>
+					</tr>
+					<tr>
+						<td><span style="font-family:Tahoma,Geneva,sans-serif;">38</span></td>
+						<td><span style="font-family:Tahoma,Geneva,sans-serif;">In Transit(BBA)</span></td>
+						<td><span style="font-family:Tahoma,Geneva,sans-serif;"><span class="val" data-de="KOu770F7YOQ" data-co="Tt7fU5lUhAU">1</span></span></td>
+					</tr>
+					<tr>
+						<td><span style="font-family:Tahoma,Geneva,sans-serif;">39</span></td>
+						<td><span style="font-family:Tahoma,Geneva,sans-serif;">Other Facility</span></td>
+						<td><span style="font-family:Tahoma,Geneva,sans-serif;"><span class="val" data-de="iGYCZRe52Vy" data-co="Tt7fU5lUhAU">1</span></span></td>
+					</tr>
+					<tr>
+						<td><font face="Tahoma, Geneva, sans-serif">40</font></td>
+						<td><span style="font-family:Tahoma,Geneva,sans-serif;">Home/TBA</span></td>
+						<td><span style="font-family:Tahoma,Geneva,sans-serif;"><span class="val" data-de="hPhTbuLFnx4" data-co="Tt7fU5lUhAU">1</span></span></td>
+					</tr>
+					<tr>
+						<td colspan="3"><span style="font-family:Tahoma,Geneva,sans-serif;"><strong>Delivery Mode</strong></span></td>
+					</tr>
+					<tr>
+						<td><font face="Tahoma, Geneva, sans-serif">41</font></td>
+						<td><span style="font-family:Tahoma,Geneva,sans-serif;">Spontanous Vagina</span></td>
+						<td><span style="font-family:Tahoma,Geneva,sans-serif;"><span class="val" data-de="GwzEUK12Pqh" data-co="Tt7fU5lUhAU">38</span></span></td>
+					</tr>
+					<tr>
+						<td><font face="Tahoma, Geneva, sans-serif">42</font></td>
+						<td><span style="font-family:Tahoma,Geneva,sans-serif;">Vacuum Extraction</span></td>
+						<td><span style="font-family:Tahoma,Geneva,sans-serif;"><span class="val" data-de="LLrXje6xH8D" data-co="Tt7fU5lUhAU">0</span></span></td>
+					</tr>
+					<tr>
+						<td><font face="Tahoma, Geneva, sans-serif">43</font></td>
+						<td><span style="font-family:Tahoma,Geneva,sans-serif;">Breech</span></td>
+						<td><span style="font-family:Tahoma,Geneva,sans-serif;"><span class="val" data-de="UdxIE19B603" data-co="Tt7fU5lUhAU">0</span></span></td>
+					</tr>
+					<tr>
+						<td><font face="Tahoma, Geneva, sans-serif">44</font></td>
+						<td><span style="font-family:Tahoma,Geneva,sans-serif;">Caesarean Section</span></td>
+						<td><span style="font-family:Tahoma,Geneva,sans-serif;"><span class="val" data-de="FYDa4NcJNrq" data-co="Tt7fU5lUhAU">0</span></span></td>
+					</tr>
+					<tr>
+						<td colspan="3"><span style="font-family:Tahoma,Geneva,sans-serif;"><strong>Newborn Complications</strong></span></td>
+					</tr>
+					<tr>
+						<td><span style="font-family:Tahoma,Geneva,sans-serif;">45</span></td>
+						<td><span style="font-family:Tahoma,Geneva,sans-serif;">None</span></td>
+						<td><span style="font-family:Tahoma,Geneva,sans-serif;"><span class="val" data-de="SytVoNgDYlf" data-co="Tt7fU5lUhAU">34</span></span></td>
+					</tr>
+					<tr>
+						<td><span style="font-family:Tahoma,Geneva,sans-serif;">46</span></td>
+						<td><span style="font-family:Tahoma,Geneva,sans-serif;">Weight Less 2500g</span></td>
+						<td><span style="font-family:Tahoma,Geneva,sans-serif;"><span class="val" data-de="gkgM1TgE5oF" data-co="Tt7fU5lUhAU">0</span></span></td>
+					</tr>
+					<tr>
+						<td><span style="font-family:Tahoma,Geneva,sans-serif;">47</span></td>
+						<td><span style="font-family:Tahoma,Geneva,sans-serif;">Prematurity</span></td>
+						<td><span style="font-family:Tahoma,Geneva,sans-serif;"><span class="val" data-de="UXTZkim1Npv" data-co="Tt7fU5lUhAU">1</span></span></td>
+					</tr>
+					<tr>
+						<td><span style="font-family:Tahoma,Geneva,sans-serif;">48</span></td>
+						<td><span style="font-family:Tahoma,Geneva,sans-serif;">Asphyxia</span></td>
+						<td><span style="font-family:Tahoma,Geneva,sans-serif;"><span class="val" data-de="vcEWpcFjEuU" data-co="Tt7fU5lUhAU">3</span></span></td>
+					</tr>
+					<tr>
+						<td><span style="font-family:Tahoma,Geneva,sans-serif;">49</span></td>
+						<td><span style="font-family:Tahoma,Geneva,sans-serif;">Sepsis</span></td>
+						<td><span style="font-family:Tahoma,Geneva,sans-serif;"><span class="val" data-de="bPvw8ZdBgRe" data-co="Tt7fU5lUhAU">0</span></span></td>
+					</tr>
+					<tr>
+						<td><font face="Tahoma, Geneva, sans-serif">50</font></td>
+						<td><span style="font-family:Tahoma,Geneva,sans-serif;">Other</span></td>
+						<td><span style="font-family:Tahoma,Geneva,sans-serif;"><span class="val" data-de="Z9Q4qIjoePS" data-co="Tt7fU5lUhAU">0</span></span></td>
+					</tr>
+					<tr>
+						<td colspan="3"><span style="font-family:Tahoma,Geneva,sans-serif;"><strong>Newborn Complication Management</strong></span></td>
+					</tr>
+					<tr>
+						<td>51</td>
+						<td>Kangaroo Mother Care</td>
+						<td><span class="val" data-de="zANGFtNoUEt" data-co="Tt7fU5lUhAU">1</span></td>
+					</tr>
+					<tr>
+						<td>52</td>
+						<td>Resuscitation</td>
+						<td><span class="val" data-de="zE0WLBSHx1e" data-co="Tt7fU5lUhAU">2</span></td>
+					</tr>
+					<tr>
+						<td>53</td>
+						<td>Antibiotics</td>
+						<td><span class="val" data-de="mWeTHZCPNT0" data-co="Tt7fU5lUhAU">0</span></td>
+					</tr>
+					<tr>
+						<td>54</td>
+						<td>Other</td>
+						<td><span class="val" data-de="qYKuaHC8Gnk" data-co="Tt7fU5lUhAU">0</span></td>
+					</tr>
+				</tbody>
+			</table>
+			</td>
+			<td>
+			<table border="1" cellpadding="0" cellspacing="0" style="background-color:#e6e6fa;border-style:hidden;">
+				<tbody>
+					<tr>
+						<td colspan="3"><span style="font-family:Tahoma,Geneva,sans-serif;"><strong>Newborn Survival/PMTCT</strong></span></td>
+					</tr>
+					<tr>
+						<td><span style="font-family:Tahoma,Geneva,sans-serif;">55</span></td>
+						<td><span style="font-family:Tahoma,Geneva,sans-serif;">Alive not HIV exp.</span></td>
+						<td><span style="font-family:Tahoma,Geneva,sans-serif;"><span class="val" data-de="q7NoDcfaciO" data-co="Tt7fU5lUhAU">34</span></span></td>
+					</tr>
+					<tr>
+						<td><font face="Tahoma, Geneva, sans-serif">56</font></td>
+						<td><span style="font-family:Tahoma,Geneva,sans-serif;">Alive exp. No NVP</span></td>
+						<td><span style="font-family:Tahoma,Geneva,sans-serif;"><span class="val" data-de="EeywK6AHQdK" data-co="Tt7fU5lUhAU">0</span></span></td>
+					</tr>
+					<tr>
+						<td><font face="Tahoma, Geneva, sans-serif">57</font></td>
+						<td><span style="font-family:Tahoma,Geneva,sans-serif;">Alive exp. NVP started</span></td>
+						<td><span style="font-family:Tahoma,Geneva,sans-serif;"><span class="val" data-de="iBBnHx1Uf50" data-co="Tt7fU5lUhAU">3</span></span></td>
+					</tr>
+					<tr>
+						<td><font face="Tahoma, Geneva, sans-serif">58</font></td>
+						<td><span style="font-family:Tahoma,Geneva,sans-serif;">Alive,unknown exp</span></td>
+						<td><span style="font-family:Tahoma,Geneva,sans-serif;"><span class="val" data-de="kaYz6eqxqQH" data-co="Tt7fU5lUhAU">0</span></span></td>
+					</tr>
+					<tr>
+						<td><span style="font-family:Tahoma,Geneva,sans-serif;">59</span></td>
+						<td><span style="font-family:Tahoma,Geneva,sans-serif;">Fresh Stillbirth</span></td>
+						<td><span style="font-family:Tahoma,Geneva,sans-serif;"><span class="val" data-de="YLydKJIyGFF" data-co="Tt7fU5lUhAU">1</span></span></td>
+					</tr>
+					<tr>
+						<td><font face="Tahoma, Geneva, sans-serif">60</font></td>
+						<td><span style="font-family:Tahoma,Geneva,sans-serif;">Macerated Stillbirth</span></td>
+						<td><span style="font-family:Tahoma,Geneva,sans-serif;"><span class="val" data-de="EJ0qYm1FrcH" data-co="Tt7fU5lUhAU">0</span></span></td>
+					</tr>
+					<tr>
+						<td><font face="Tahoma, Geneva, sans-serif">61</font></td>
+						<td><span style="font-family:Tahoma,Geneva,sans-serif;">Neonatal Death</span></td>
+						<td><span style="font-family:Tahoma,Geneva,sans-serif;"><span class="val" data-de="jz793Wzon1W" data-co="Tt7fU5lUhAU">0</span></span></td>
+					</tr>
+					<tr>
+						<td colspan="2"><span style="font-family:Tahoma,Geneva,sans-serif;">Total Children</span></td>
+						<td><span style="font-family:Tahoma,Geneva,sans-serif;"></span></td>
+					</tr>
+					<tr>
+						<td colspan="3"><span style="font-family:Tahoma,Geneva,sans-serif;"><strong>Breastfeeding Initiated</strong></span></td>
+					</tr>
+					<tr>
+						<td>&nbsp;</td>
+						<td><em><span style="font-family:Tahoma,Geneva,sans-serif;">Never/later than 60</span></em></td>
+						<td><span style="font-family:Tahoma,Geneva,sans-serif;"><span class="val" data-de="bjLZY1FqdDJ" data-co="Tt7fU5lUhAU">1</span></span></td>
+					</tr>
+					<tr>
+						<td><span style="font-family:Tahoma,Geneva,sans-serif;">62</span></td>
+						<td><span style="font-family:Tahoma,Geneva,sans-serif;">Started BF in 60 mins</span></td>
+						<td><span style="font-family:Tahoma,Geneva,sans-serif;"></span></td>
+					</tr>
+					<tr>
+						<td colspan="3"><span style="font-family:Tahoma,Geneva,sans-serif;"><strong>Routine Care</strong></span></td>
+					</tr>
+					<tr>
+						<td>63</td>
+						<td><span style="font-family:Tahoma,Geneva,sans-serif;">Tetracycline Oint. Given</span></td>
+						<td><span class="val" data-de="YGJbvAkqBgI" data-co="Tt7fU5lUhAU">36</span></td>
+					</tr>
+					<tr>
+						<td>64</td>
+						<td>Chlorohexidine Given</td>
+						<td><span class="val" data-de="YvNy8rie5j7" data-co="Tt7fU5lUhAU">14</span></td>
+					</tr>
+					<tr>
+						<td>65</td>
+						<td>Vitamin K Given</td>
+						<td><span class="val" data-de="zAcW94iEdXU" data-co="Tt7fU5lUhAU">0</span></td>
+					</tr>
+					<tr>
+						<td><font face="Tahoma, Geneva, sans-serif">66</font></td>
+						<td><font face="Tahoma, Geneva, sans-serif">ITN Given</font></td>
+						<td><span class="val" data-de="NNFGzJD43R9" data-co="Tt7fU5lUhAU">32</span></td>
+					</tr>
+				</tbody>
+			</table>
+			</td>
+		</tr>
+	</tbody>
+</table>
+
+        
+    
+</body></html>

@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %}Pharmacy - Dispense Medications{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card shadow">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">
+                    💊 Pharmacy Dashboard — Pending Prescriptions
+                </h6>
+            </div>
+            <div class="card-body">
+                {% if prescriptions %}
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Patient (ID)</th>
+                                <th>Drug</th>
+                                <th>Prescribed</th>
+                                <th>Dispensed</th>
+                                <th>Stock</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for p in prescriptions %}
+                            <tr>
+                                <td>
+                                    <strong>{{ p.patient_name }}</strong><br>
+                                    <small class="text-muted">#{{ p.patient_id }}</small>
+                                </td>
+                                <td>{{ p.drug_name }}</td>
+                                <td>{{ p.quantity_prescribed }}</td>
+                                <td>{{ p.quantity_dispensed }}</td>
+                                <td>
+                                    {% if p.stock <= 5 %}
+                                        <span class="badge bg-danger">Low: {{ p.stock }}</span>
+                                    {% else %}
+                                        {{ p.stock }}
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <form method="POST" action="{{ url_for('dispense_drug', prescription_id=p.id) }}" style="display:inline;">
+                                        <input 
+                                            type="number" 
+                                            name="quantity" 
+                                            value="{{ p.quantity_prescribed - p.quantity_dispensed }}" 
+                                            min="1" 
+                                            max="{{ p.quantity_prescribed - p.quantity_dispensed }}" 
+                                            class="form-control form-control-sm d-inline"
+                                            style="width: 80px; display: inline-block;"
+                                        >
+                                        <button type="submit" class="btn btn-sm btn-success ms-1">
+                                            <i class="bi bi-capsule"></i> Dispense
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-5 text-muted">
+                    <i class="bi bi-check-circle fs-1 mb-3"></i>
+                    <h5>No pending prescriptions</h5>
+                    <p>All medications have been dispensed ✅</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

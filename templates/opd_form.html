@@ -1,0 +1,795 @@
+{% extends "base.html" %}
+{% block title %}{% if editing %}Edit Visit{% else %}New Visit{% endif %} - Ministry of Health OPD System{% endblock %}
+{% block content %}
+<style>
+    .form-section {
+        background: #ffffff;
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        border-left: 4px solid #0056b3;
+    }
+    .form-section h5 {
+        color: #0056b3;
+        font-weight: 600;
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+    }
+    .form-section h5 i {
+        margin-right: 0.5rem;
+        font-size: 1.2rem;
+    }
+    .priority-field {
+        background: #fff3cd;
+        border: 2px solid #ffc107;
+        border-radius: 8px;
+        padding: 0.75rem;
+        margin-bottom: 1rem;
+    }
+    .priority-field label {
+        font-weight: 600;
+        color: #856404;
+    }
+    .quick-actions {
+        position: fixed;
+        top: 50%;
+        right: 20px;
+        transform: translateY(-50%);
+        z-index: 1000;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    .quick-action-btn {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        border: none;
+        background: #0056b3;
+        color: white;
+        font-size: 1.2rem;
+        cursor: pointer;
+        transition: all 0.3s;
+        box-shadow: 0 4px 12px rgba(0, 86, 179, 0.3);
+    }
+    .quick-action-btn:hover {
+        transform: scale(1.1);
+        background: #003d7a;
+    }
+    .form-progress {
+        background: #e9ecef;
+        height: 4px;
+        border-radius: 2px;
+        margin-bottom: 2rem;
+        overflow: hidden;
+    }
+    .form-progress-bar {
+        height: 100%;
+        background: linear-gradient(90deg, #0056b3, #28a745);
+        transition: width 0.3s ease;
+        width: 0%;
+    }
+    .field-required {
+        border-left: 3px solid #dc3545 !important;
+    }
+    .field-completed {
+        border-left: 3px solid #28a745 !important;
+    }
+    .validation-message {
+        font-size: 0.875rem;
+        margin-top: 0.25rem;
+    }
+    .validation-message.error {
+        color: #dc3545;
+    }
+    .validation-message.success {
+        color: #28a745;
+    }
+    .min-height-100 {
+        min-height: 100px;
+    }
+    
+    @media (max-width: 768px) {
+        .quick-actions {
+            display: none;
+        }
+        .form-section {
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+        .priority-field {
+            padding: 0.5rem;
+        }
+        .btn-lg {
+            padding: 0.75rem 1rem;
+            font-size: 1rem;
+        }
+        .card-body {
+            padding: 1rem;
+        }
+        .form-section h5 {
+            font-size: 1.1rem;
+        }
+        .selectedDrugs .badge {
+            font-size: 0.8rem;
+            padding: 0.4rem 0.6rem;
+        }
+    }
+    
+    @media (max-width: 576px) {
+        .form-section {
+            padding: 0.75rem;
+        }
+        .priority-field {
+            padding: 0.4rem;
+        }
+        .btn-lg {
+            padding: 0.6rem 0.8rem;
+            font-size: 0.9rem;
+        }
+        .form-section h5 {
+            font-size: 1rem;
+        }
+        .form-section h5 i {
+            font-size: 1rem;
+        }
+    }
+</style>
+
+<div class="row">
+    <div class="col-12">
+        <!-- Progress Bar -->
+        <div class="form-progress">
+            <div class="form-progress-bar" id="progressBar"></div>
+        </div>
+        
+        <div class="card shadow">
+            <div class="card-header py-3">
+                <h4 class="m-0 font-weight-bold text-primary">
+                    {% if editing %}
+                    <i class="bi bi-pencil-square me-2"></i>Edit OPD Visit (ID: {{ record.id }})
+                    {% else %}
+                    <i class="bi bi-plus-circle me-2"></i>Record New OPD Visit
+                    {% endif %}
+                </h4>
+            </div>
+            <div class="card-body">
+                <form method="POST" id="opdForm">
+                    <!-- Patient Information Section -->
+                    <div class="form-section">
+                        <h5><i class="bi bi-person-badge"></i>Patient Information</h5>
+                        
+                        <!-- Priority Fields -->
+                        <div class="priority-field">
+                            <div class="row g-3">
+                                <div class="col-md-3">
+                                    <label class="form-label">Patient Name *</label>
+                                    <input type="text" name="patient_name" class="form-control" value="{{ record.patient_name if editing else '' }}" placeholder="e.g., John Banda" required data-validate="required">
+                                    <div class="validation-message" id="patient_name_msg"></div>
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label">Age *</label>
+                                    <input type="number" min="0" max="150" name="age" class="form-control" value="{{ record.age if editing else '' }}" required data-validate="required">
+                                    <div class="validation-message" id="age_msg"></div>
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label">Sex *</label>
+                                    <select name="sex" class="form-select" required data-validate="required">
+                                        <option value="">-- Select --</option>
+                                        <option {% if editing and record.sex == 'Male' %}selected{% endif %}>Male</option>
+                                        <option {% if editing and record.sex == 'Female' %}selected{% endif %}>Female</option>
+                                        <option {% if editing and record.sex == 'Other' %}selected{% endif %}>Other</option>
+                                    </select>
+                                    <div class="validation-message" id="sex_msg"></div>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">Department *</label>
+                                    <select name="department" class="form-select" required data-validate="required">
+                                        <option value="">-- Select --</option>
+                                        <option {% if editing and record.department == 'General OPD' %}selected{% endif %}>General OPD</option>
+                                        <option {% if editing and record.department == 'ANC' %}selected{% endif %}>ANC</option>
+                                        <option {% if editing and record.department == 'Under-5' %}selected{% endif %}>Under-5</option>
+                                        <option {% if editing and record.department == 'Family Planning' %}selected{% endif %}>Family Planning</option>
+                                        <option {% if editing and record.department == 'ART/HTC' %}selected{% endif %}>ART/HTC</option>
+                                        <option {% if editing and record.department == 'Emergency' %}selected{% endif %}>Emergency</option>
+                                    </select>
+                                    <div class="validation-message" id="department_msg"></div>
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label">Patient ID</label>
+                                    <input type="text" name="patient_id" class="form-control" value="{{ record.patient_id if editing else generated_id }}" readonly>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Additional Patient Info -->
+                        <div class="row g-3">
+                            <div class="col-md-3">
+                                <label class="form-label">Date</label>
+                                <input type="date" name="visit_date" class="form-control" value="{{ record.visit_date if editing else today }}" {% if not editing %}disabled{% endif %}>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Time</label>
+                                <input type="time" name="visit_time" class="form-control" value="{{ record.visit_time if editing else now_time }}" {% if not editing %}disabled{% endif %}>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Village</label>
+                                <input type="text" name="village" class="form-control" value="{{ record.village if editing else '' }}" placeholder="Enter village name">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Diagnosis Section -->
+                    <div class="form-section">
+                        <h5><i class="bi bi-clipboard-pulse"></i>Diagnosis & Assessment</h5>
+                        <div class="row g-3">
+                            <div class="col-md-8">
+                                <label class="form-label">Primary Diagnosis</label>
+                                <select name="diagnosis_select" class="form-select" onchange="handleDiagnosisSelect(this.value)" data-validate="required">
+                                    <option value="">-- Select or type custom diagnosis --</option>
+                                    {% for disease, code in disease_codes.items() %}
+                                    <option value="{{ disease }}" data-code="{{ code }}">{{ disease }} {% if code %}(Code: {{ code }}){% endif %}</option>
+                                    {% endfor %}
+                                </select>
+                                <input type="text" 
+                                       name="diagnosis_custom" 
+                                       id="diagnosis_custom" 
+                                       class="form-control mt-2" 
+                                       placeholder="Or type custom diagnosis here..."
+                                       oninput="document.getElementById('diagnosis_code').value = ''">
+                                <div class="validation-message" id="diagnosis_msg"></div>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Diagnosis Code</label>
+                                <input type="text" 
+                                       name="diagnosis_code" 
+                                       id="diagnosis_code" 
+                                       class="form-control" 
+                                       placeholder="Enter code (e.g., 9c, 15a)" 
+                                       value="{% if editing %}{{ record.diagnosis_code }}{% endif %}">
+                            </div>
+                        </div>
+                        <input type="hidden" name="diagnosis" id="diagnosis_final" 
+                               value="{% if editing %}{{ record.diagnosis }}{% endif %}">
+                    </div>
+
+                    <!-- Treatment Section -->
+                    <div class="form-section">
+                        <h5><i class="bi bi-capsule"></i>Treatment & Medication</h5>
+                        
+                        <!-- Primary Drug Selection -->
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-8">
+                                <label class="form-label">Select Primary Medication</label>
+                                <select name="primary_drug" id="primaryDrugSelect" class="form-select" onchange="addPrimaryDrug()">
+                                    <option value="">-- Select Primary Medication --</option>
+                                    <optgroup label="Antimalarials">
+                                        <option value="Artemether-Lumefantrine 20mg/120mg">Artemether-Lumefantrine 20mg/120mg (LA 1X6)</option>
+                                        <option value="Artemether-Lumefantrine 40mg/240mg">Artemether-Lumefantrine 40mg/240mg (LA 2X6)</option>
+                                        <option value="Artemether-Lumefantrine 60mg/360mg">Artemether-Lumefantrine 60mg/360mg (LA 3X6)</option>
+                                        <option value="Artemether-Lumefantrine 80mg/480mg">Artemether-Lumefantrine 80mg/480mg (LA 4X6)</option>
+                                        <option value="ASAQ 25mg/67.5mg (3 tablets)">ASAQ 25mg/67.5mg (3 tablets)</option>
+                                        <option value="ASAQ 50mg/135mg (3 tablets)">ASAQ 50mg/135mg (3 tablets)</option>
+                                        <option value="ASAQ 100mg/270mg (3 tablets)">ASAQ 100mg/270mg (3 tablets)</option>
+                                        <option value="ASAQ 100mg/270mg (6 tablets)">ASAQ 100mg/270mg (6 tablets)</option>
+                                    </optgroup>
+                                    <optgroup label="Antibiotics">
+                                        <option value="Amoxicillin 250mg">Amoxicillin 250mg</option>
+                                        <option value="Amoxicillin 500mg">Amoxicillin 500mg</option>
+                                        <option value="Cotrimoxazole 800mg/160mg">Cotrimoxazole 800mg/160mg</option>
+                                        <option value="Cotrimoxazole 400mg/80mg">Cotrimoxazole 400mg/80mg</option>
+                                        <option value="Metronidazole 400mg">Metronidazole 400mg</option>
+                                        <option value="Ciprofloxacin 500mg">Ciprofloxacin 500mg</option>
+                                        <option value="Doxycycline 100mg">Doxycycline 100mg</option>
+                                        <option value="Erythromycin 250mg">Erythromycin 250mg</option>
+                                        <option value="Azithromycin 500mg">Azithromycin 500mg</option>
+                                        <option value="Ceftriaxone 1g">Ceftriaxone 1g</option>
+                                    </optgroup>
+                                    <optgroup label="Pain Relief & Anti-inflammatory">
+                                        <option value="Paracetamol 500mg">Paracetamol 500mg</option>
+                                        <option value="Ibuprofen 200mg">Ibuprofen 200mg</option>
+                                        <option value="Ibuprofen 400mg">Ibuprofen 400mg</option>
+                                        <option value="Aspirin 300mg">Aspirin 300mg</option>
+                                        <option value="Diclofenac 50mg">Diclofenac 50mg</option>
+                                    </optgroup>
+                                    <optgroup label="Nutritional Supplements">
+                                        <option value="ORS 1 sachet">ORS 1 sachet</option>
+                                        <option value="ORS 2 sachets">ORS 2 sachets</option>
+                                        <option value="Zinc 20mg">Zinc 20mg</option>
+                                        <option value="Zinc 10mg">Zinc 10mg</option>
+                                        <option value="Ferrous Sulfate 200mg">Ferrous Sulfate 200mg</option>
+                                        <option value="Folic Acid 5mg">Folic Acid 5mg</option>
+                                        <option value="Vitamin A 200,000 IU">Vitamin A 200,000 IU</option>
+                                        <option value="Multivitamins">Multivitamins</option>
+                                        <option value="Calcium 500mg">Calcium 500mg</option>
+                                    </optgroup>
+                                    <optgroup label="Malawian Traditional & Common">
+                                        <option value="Moringa Powder">Moringa Powder</option>
+                                        <option value="Neem Extract">Neem Extract</option>
+                                        <option value="Aloe Vera Gel">Aloe Vera Gel</option>
+                                        <option value="Honey (Medicinal)">Honey (Medicinal)</option>
+                                        <option value="Garlic Extract">Garlic Extract</option>
+                                        <option value="Ginger Powder">Ginger Powder</option>
+                                        <option value="Turmeric Powder">Turmeric Powder</option>
+                                    </optgroup>
+                                    <optgroup label="HIV/TB Medications">
+                                        <option value="Tenofovir/Lamivudine/Efavirenz">Tenofovir/Lamivudine/Efavirenz</option>
+                                        <option value="Zidovudine/Lamivudine/Nevirapine">Zidovudine/Lamivudine/Nevirapine</option>
+                                        <option value="Isoniazid 300mg">Isoniazid 300mg</option>
+                                        <option value="Rifampicin 150mg">Rifampicin 150mg</option>
+                                        <option value="Ethambutol 400mg">Ethambutol 400mg</option>
+                                        <option value="Pyrazinamide 500mg">Pyrazinamide 500mg</option>
+                                    </optgroup>
+                                    <optgroup label="Maternal & Child Health">
+                                        <option value="Folic Acid 400mcg">Folic Acid 400mcg</option>
+                                        <option value="Iron Supplement 60mg">Iron Supplement 60mg</option>
+                                        <option value="Calcium 1000mg">Calcium 1000mg</option>
+                                        <option value="Vitamin D3 1000 IU">Vitamin D3 1000 IU</option>
+                                        <option value="Prenatal Multivitamin">Prenatal Multivitamin</option>
+                                    </optgroup>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Add to List</label>
+                                <button type="button" class="btn btn-primary w-100" onclick="addPrimaryDrug()">
+                                    <i class="bi bi-plus-circle me-2"></i>Add Medication
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Selected Drugs Display -->
+                        <div class="mb-3">
+                            <label class="form-label">Selected Medications</label>
+                            <div id="selectedDrugs" class="border rounded p-3 bg-light min-height-100">
+                                <div class="text-muted">No medications selected yet. Use dropdown above to add medications.</div>
+                            </div>
+                        </div>
+                        
+                        <!-- Additional Medications -->
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Additional Medication 1</label>
+                                <select name="additional_drug_1" class="form-select" onchange="addAdditionalDrug(1)">
+                                    <option value="">-- Select Additional Medication --</option>
+                                    <optgroup label="Common Additions">
+                                        <option value="Paracetamol 500mg">Paracetamol 500mg</option>
+                                        <option value="Ibuprofen 400mg">Ibuprofen 400mg</option>
+                                        <option value="Multivitamins">Multivitamins</option>
+                                        <option value="ORS 1 sachet">ORS 1 sachet</option>
+                                        <option value="Zinc 20mg">Zinc 20mg</option>
+                                        <option value="Vitamin A 200,000 IU">Vitamin A 200,000 IU</option>
+                                    </optgroup>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Additional Medication 2</label>
+                                <select name="additional_drug_2" class="form-select" onchange="addAdditionalDrug(2)">
+                                    <option value="">-- Select Additional Medication --</option>
+                                    <optgroup label="Common Additions">
+                                        <option value="Paracetamol 500mg">Paracetamol 500mg</option>
+                                        <option value="Ibuprofen 400mg">Ibuprofen 400mg</option>
+                                        <option value="Multivitamins">Multivitamins</option>
+                                        <option value="ORS 1 sachet">ORS 1 sachet</option>
+                                        <option value="Zinc 20mg">Zinc 20mg</option>
+                                        <option value="Vitamin A 200,000 IU">Vitamin A 200,000 IU</option>
+                                    </optgroup>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <!-- Custom Drug Input -->
+                        <div class="mt-3">
+                            <label class="form-label">Custom Medication (if not listed above)</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-plus-circle"></i></span>
+                                <input type="text" 
+                                       name="custom_drug" 
+                                       id="customDrugInput"
+                                       class="form-control" 
+                                       placeholder="e.g., Custom medication name and dosage"
+                                       value="{% if editing and record.treatment_given %}{{ record.treatment_given.split('; ')|last if record.treatment_given.split('; ')|length > 1 else '' }}{% endif %}">
+                                <button type="button" class="btn btn-outline-primary" onclick="addCustomDrug()">
+                                    <i class="bi bi-plus"></i> Add Custom
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Hidden field to store all selected drugs -->
+                        <input type="hidden" name="treatment_given" id="treatmentGivenHidden" value="{% if editing %}{{ record.treatment_given }}{% endif %}">
+                    </div>
+
+                    <!-- Outcome & Follow-up Section -->
+                    <div class="form-section">
+                        <h5><i class="bi bi-check-circle"></i>Outcome & Follow-up</h5>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Visit Outcome *</label>
+                                <select name="outcome" class="form-select" required data-validate="required">
+                                    <option value="">-- Select --</option>
+                                    <option {% if editing and record.outcome == 'Treated' %}selected{% endif %}>Treated</option>
+                                    <option {% if editing and record.outcome == 'Referred' %}selected{% endif %}>Referred</option>
+                                    <option {% if editing and record.outcome == 'Admitted' %}selected{% endif %}>Admitted</option>
+                                    <option {% if editing and record.outcome == 'Discharged' %}selected{% endif %}>Discharged</option>
+                                    <option {% if editing and record.outcome == 'Observation' %}selected{% endif %}>Observation</option>
+                                </select>
+                                <div class="validation-message" id="outcome_msg"></div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Next Appointment</label>
+                                <input type="date" name="next_appointment" class="form-control" value="{{ record.next_appointment if editing else '' }}">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Referred To</label>
+                                <input type="text" name="referred_to" class="form-control" value="{{ record.referred_to if editing else '' }}" placeholder="Enter referral destination">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Lab Information Section -->
+                    <div class="form-section">
+                        <h5><i class="bi bi-droplet"></i>Laboratory Information</h5>
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label class="form-label">Lab Test Done?</label>
+                                <select name="lab_tested" class="form-select" onchange="toggleLabFields()">
+                                    <option value="">-- Select --</option>
+                                    <option {% if editing and record.lab_tested == 'Yes' %}selected{% endif %}>Yes</option>
+                                    <option {% if editing and record.lab_tested == 'No' %}selected{% endif %}>No</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4" id="labTestTypeField">
+                                <label class="form-label">Lab Test Type</label>
+                                <select name="lab_test_type" class="form-select">
+                                    <option value="">-- Select --</option>
+                                    <option {% if editing and record.lab_test_type == 'mRDT' %}selected{% endif %}>mRDT</option>
+                                    <option {% if editing and record.lab_test_type == 'Microscopy' %}selected{% endif %}>Microscopy</option>
+                                    <option {% if editing and record.lab_test_type == 'Other' %}selected{% endif %}>Other</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4" id="labResultField">
+                                <label class="form-label">Lab Result</label>
+                                <select name="lab_result" class="form-select">
+                                    <option value="">-- Select --</option>
+                                    <option {% if editing and record.lab_result == 'Positive' %}selected{% endif %}>Positive</option>
+                                    <option {% if editing and record.lab_result == 'Negative' %}selected{% endif %}>Negative</option>
+                                    <option {% if editing and record.lab_result == 'Not Applicable' %}selected{% endif %}>Not Applicable</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6" id="malariaField">
+                                <label class="form-label">Malaria Classification</label>
+                                <select name="malaria_classification" class="form-select">
+                                    <option value="">-- Select --</option>
+                                    <option {% if editing and record.malaria_classification == 'Confirmed' %}selected{% endif %}>Confirmed</option>
+                                    <option {% if editing and record.malaria_classification == 'Presumed' %}selected{% endif %}>Presumed</option>
+                                    <option {% if editing and record.malaria_classification == 'Not Malaria' %}selected{% endif %}>Not Malaria</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Submit Buttons -->
+                    <div class="mt-4 d-flex gap-2 flex-wrap justify-content-between">
+                        <div class="d-flex gap-2 flex-wrap">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="bi bi-save me-2"></i>{% if editing %}Update Visit{% else %}Save Visit{% endif %}
+                            </button>
+                            <button type="button" class="btn btn-outline-warning btn-lg" onclick="clearForm()">
+                                <i class="bi bi-arrow-clockwise me-2"></i>Clear Form
+                            </button>
+                            <a href="/opd/view" class="btn btn-outline-secondary btn-lg">
+                                <i class="bi bi-table me-2"></i>View All Records
+                            </a>
+                        </div>
+                        <div class="text-muted">
+                            <small><i class="bi bi-info-circle me-1"></i>Press Ctrl+S to save quickly</small>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions Sidebar -->
+<div class="quick-actions">
+    <button type="button" class="quick-action-btn" onclick="scrollToSection('patient')" title="Patient Info">
+        <i class="bi bi-person"></i>
+    </button>
+    <button type="button" class="quick-action-btn" onclick="scrollToSection('diagnosis')" title="Diagnosis">
+        <i class="bi bi-clipboard-pulse"></i>
+    </button>
+    <button type="button" class="quick-action-btn" onclick="scrollToSection('treatment')" title="Treatment">
+        <i class="bi bi-capsule"></i>
+    </button>
+    <button type="button" class="quick-action-btn" onclick="scrollToSection('outcome')" title="Outcome">
+        <i class="bi bi-check-circle"></i>
+    </button>
+    <button type="button" class="quick-action-btn" onclick="document.getElementById('opdForm').submit()" title="Save">
+        <i class="bi bi-save"></i>
+    </button>
+</div>
+
+<script>
+// Global variables
+let selectedDrugs = new Set();
+let drugList = [];
+
+// Initialize drug list from the form
+document.addEventListener('DOMContentLoaded', function() {
+    initializeDrugList();
+    initializeFormValidation();
+    updateProgressBar();
+    initializeKeyboardShortcuts();
+    loadExistingData();
+});
+
+// Drug management functions
+function initializeDrugList() {
+    // Load existing drugs from hidden field if editing
+    const existingDrugs = document.getElementById('treatmentGivenHidden').value;
+    if (existingDrugs) {
+        const drugs = existingDrugs.split('; ');
+        drugs.forEach(drug => {
+            if (drug.trim()) {
+                selectedDrugs.add(drug.trim());
+            }
+        });
+    }
+    updateSelectedDrugsDisplay();
+}
+
+function addPrimaryDrug() {
+    const select = document.getElementById('primaryDrugSelect');
+    const drugName = select.value.trim();
+    
+    if (drugName && !selectedDrugs.has(drugName)) {
+        selectedDrugs.add(drugName);
+        updateSelectedDrugsDisplay();
+        select.value = ''; // Reset selection
+        updateProgressBar();
+    }
+}
+
+function addAdditionalDrug(number) {
+    const select = document.querySelector(`select[name="additional_drug_${number}"]`);
+    const drugName = select.value.trim();
+    
+    if (drugName && !selectedDrugs.has(drugName)) {
+        selectedDrugs.add(drugName);
+        updateSelectedDrugsDisplay();
+        select.value = ''; // Reset selection
+        updateProgressBar();
+    }
+}
+
+function addCustomDrug() {
+    const customInput = document.getElementById('customDrugInput');
+    const drugName = customInput.value.trim();
+    
+    if (drugName && !selectedDrugs.has(drugName)) {
+        selectedDrugs.add(drugName);
+        updateSelectedDrugsDisplay();
+        customInput.value = '';
+        updateProgressBar();
+    }
+}
+
+function updateSelectedDrugsDisplay() {
+    const container = document.getElementById('selectedDrugs');
+    
+    if (selectedDrugs.size === 0) {
+        container.innerHTML = '<div class="text-muted">No medications selected yet. Use dropdown above to add medications.</div>';
+        return;
+    }
+    
+    let html = '<div class="d-flex flex-wrap gap-2">';
+    selectedDrugs.forEach(drug => {
+        html += `
+            <span class="badge bg-primary d-flex align-items-center gap-1">
+                ${drug}
+                <button type="button" class="btn-close btn-close-white" onclick="removeDrug('${drug}')" style="font-size: 0.7rem;"></button>
+            </span>
+        `;
+    });
+    html += '</div>';
+    
+    container.innerHTML = html;
+    
+    // Update hidden field with all selected drugs
+    updateTreatmentGivenHidden();
+}
+
+function updateTreatmentGivenHidden() {
+    const hiddenField = document.getElementById('treatmentGivenHidden');
+    const drugsArray = Array.from(selectedDrugs);
+    hiddenField.value = drugsArray.join('; ');
+}
+
+function removeDrug(drugName) {
+    selectedDrugs.delete(drugName);
+    updateSelectedDrugsDisplay();
+    updateProgressBar();
+}
+
+// Form validation
+function initializeFormValidation() {
+    const requiredFields = document.querySelectorAll('[data-validate="required"]');
+    
+    requiredFields.forEach(field => {
+        field.addEventListener('blur', function() {
+            validateField(this);
+        });
+        
+        field.addEventListener('input', function() {
+            if (this.classList.contains('field-required')) {
+                validateField(this);
+            }
+        });
+    });
+}
+
+function validateField(field) {
+    const value = field.value.trim();
+    const fieldName = field.name;
+    const messageId = fieldName + '_msg';
+    const messageEl = document.getElementById(messageId);
+    
+    if (!value) {
+        field.classList.add('field-required');
+        field.classList.remove('field-completed');
+        if (messageEl) {
+            messageEl.innerHTML = '<i class="bi bi-exclamation-triangle me-1"></i>This field is required';
+            messageEl.className = 'validation-message error';
+        }
+        return false;
+    } else {
+        field.classList.remove('field-required');
+        field.classList.add('field-completed');
+        if (messageEl) {
+            messageEl.innerHTML = '<i class="bi bi-check-circle me-1"></i>Valid';
+            messageEl.className = 'validation-message success';
+        }
+        return true;
+    }
+}
+
+// Progress tracking
+function updateProgressBar() {
+    const requiredFields = document.querySelectorAll('[data-validate="required"]');
+    const completedFields = Array.from(requiredFields).filter(field => {
+        return field.value.trim() !== '';
+    });
+    
+    const progress = (completedFields.length / requiredFields.length) * 100;
+    document.getElementById('progressBar').style.width = progress + '%';
+}
+
+// Lab field visibility
+function toggleLabFields() {
+    const labTested = document.querySelector('select[name="lab_tested"]').value;
+    const labFields = ['labTestTypeField', 'labResultField', 'malariaField'];
+    
+    labFields.forEach(fieldId => {
+        const field = document.getElementById(fieldId);
+        if (field) {
+            field.style.display = labTested === 'Yes' ? 'block' : 'none';
+        }
+    });
+}
+
+// Quick navigation
+function scrollToSection(section) {
+    const sections = {
+        'patient': document.querySelector('.form-section:nth-child(1)'),
+        'diagnosis': document.querySelector('.form-section:nth-child(2)'),
+        'treatment': document.querySelector('.form-section:nth-child(3)'),
+        'outcome': document.querySelector('.form-section:nth-child(4)')
+    };
+    
+    if (sections[section]) {
+        sections[section].scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+}
+
+// Form utilities
+function clearForm() {
+    if (confirm('Are you sure you want to clear all form data?')) {
+        document.getElementById('opdForm').reset();
+        selectedDrugs.clear();
+        updateSelectedDrugsDisplay();
+        updateProgressBar();
+        
+        // Clear validation states
+        document.querySelectorAll('.field-required, .field-completed').forEach(el => {
+            el.classList.remove('field-required', 'field-completed');
+        });
+        
+        // Clear validation messages
+        document.querySelectorAll('.validation-message').forEach(el => {
+            el.innerHTML = '';
+            el.className = 'validation-message';
+        });
+    }
+}
+
+// Keyboard shortcuts
+function initializeKeyboardShortcuts() {
+    document.addEventListener('keydown', function(e) {
+        // Ctrl+S to save
+        if (e.ctrlKey && e.key === 's') {
+            e.preventDefault();
+            document.getElementById('opdForm').submit();
+        }
+        
+        // Escape to clear search
+        if (e.key === 'Escape') {
+            document.getElementById('drugSearch').value = '';
+            document.getElementById('drugSearchResults').style.display = 'none';
+        }
+    });
+}
+
+// Load existing data for editing
+function loadExistingData() {
+    const finalDiagnosis = document.getElementById('diagnosis_final').value;
+    const select = document.querySelector('select[name="diagnosis_select"]');
+    const customInput = document.getElementById('diagnosis_custom');
+
+    if (finalDiagnosis) {
+        let found = false;
+        for (let option of select.options) {
+            if (option.value === finalDiagnosis) {
+                select.value = finalDiagnosis;
+                handleDiagnosisSelect(finalDiagnosis);
+                found = true;
+                break;
+            }
+        }
+        if (!found) {
+            customInput.value = finalDiagnosis;
+            customInput.disabled = false;
+        }
+    }
+    
+    // Initialize lab fields visibility
+    toggleLabFields();
+}
+
+// Diagnosis handling (existing function)
+function handleDiagnosisSelect(value) {
+    const customInput = document.getElementById('diagnosis_custom');
+    const codeInput = document.getElementById('diagnosis_code');
+    const finalInput = document.getElementById('diagnosis_final');
+
+    if (value) {
+        customInput.value = '';
+        customInput.disabled = true;
+        const select = document.querySelector('select[name="diagnosis_select"]');
+        const selectedOption = select.options[select.selectedIndex];
+        const code = selectedOption.getAttribute('data-code') || '';
+        codeInput.value = code;
+        finalInput.value = value;
+    } else {
+        customInput.disabled = false;
+        customInput.focus();
+        finalInput.value = customInput.value;
+    }
+    
+    validateField(document.querySelector('select[name="diagnosis_select"]'));
+    updateProgressBar();
+}
+
+document.getElementById('diagnosis_custom')?.addEventListener('input', function() {
+    document.getElementById('diagnosis_final').value = this.value;
+    validateField(this);
+    updateProgressBar();
+});
+
+// Form submission - ensure treatment_given is updated
+document.getElementById('opdForm')?.addEventListener('submit', function() {
+    updateTreatmentGivenHidden();
+});
+</script>
+{% endblock %}

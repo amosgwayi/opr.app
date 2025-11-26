@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ministry of Health OPD System - Login</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #0056b3 0%, #003d7a 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+        .login-container {
+            max-width: 420px;
+            width: 100%;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12);
+            overflow: hidden;
+        }
+        .login-header {
+            background: linear-gradient(135deg, #0056b3 0%, #003d7a 100%);
+            color: white;
+            padding: 35px 25px;
+            text-align: center;
+        }
+        .login-header img {
+            height: 110px;
+            margin: 0 auto 15px;
+            display: block;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        .login-header h4 {
+            font-weight: 600;
+            margin: 10px 0 5px;
+            font-size: 1.1rem;
+            letter-spacing: 0.5px;
+        }
+        .login-header p {
+            margin: 0;
+            font-size: 0.95rem;
+            opacity: 0.95;
+        }
+        .login-body {
+            padding: 35px;
+        }
+        .form-label {
+            font-weight: 500;
+            color: #495057;
+            margin-bottom: 8px;
+        }
+        .form-control {
+            border-radius: 8px;
+            padding: 12px 15px;
+            border: 1px solid #e9ecef;
+            font-size: 1rem;
+            transition: border-color 0.2s;
+        }
+        .form-control:focus {
+            border-color: #0056b3;
+            box-shadow: 0 0 0 0.2rem rgba(0, 86, 179, 0.2);
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #0056b3 0%, #003d7a 100%);
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 1.05rem;
+            transition: all 0.3s ease;
+            width: 100%;
+        }
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 5px 15px rgba(0, 86, 179, 0.35);
+        }
+        .login-footer {
+            text-align: center;
+            padding: 25px;
+            background: #f8f9fa;
+            border-top: 1px solid #e9ecef;
+            font-size: 0.92rem;
+            color: #495057;
+            line-height: 1.5;
+        }
+        .login-footer a {
+            color: #0056b3;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        .login-footer a:hover {
+            text-decoration: underline;
+        }
+        @media (max-width: 576px) {
+            .login-container {
+                margin: 15px;
+                border-radius: 12px;
+            }
+            .login-header img {
+                height: 90px;
+            }
+            .login-body {
+                padding: 25px 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-header">
+            <img src="/ministry.jpg" alt="Ministry of Health Malawi" onerror="this.src='https://via.placeholder.com/110x110?text=Logo'; this.style.height='110px';">
+            <h4>Ministry of Health</h4>
+            <p>Outpatient Registry System</p>
+        </div>
+        <div class="login-body">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+            <div class="mb-4">
+                {% for category, message in messages %}
+                <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+            {% endwith %}
+            <form method="POST">
+                <div class="mb-3">
+                    <label for="username" class="form-label">Username</label>
+                    <input type="text" class="form-control" id="username" name="username" required autofocus>
+                </div>
+                <div class="mb-4">
+                    <label for="password" class="form-label">Password</label>
+                    <input type="password" class="form-control" id="password" name="password" required>
+                </div>
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-box-arrow-in-right me-2"></i>Sign In
+                </button>
+            </form>
+        </div>
+        <div class="login-footer">
+            <p><strong>For Support Contact:</strong></p>
+            <p>📧 <a href="mailto:amsjnrgwayi@gmail.com">amsjnrgwayi@gmail.com</a></p>
+            <p>📞 +265 088 493 7071</p>
+        </div>
+    </div>
+</body>
+</html>
